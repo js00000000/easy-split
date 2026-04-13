@@ -4,6 +4,8 @@ A simple group expense splitting application.
 
 **Live Demo:** [https://easy-split-14.netlify.app](https://easy-split-14.netlify.app)
 
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/js00000000/easy-split)
+
 ## Firebase Setup
 
 1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/).
