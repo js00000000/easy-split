@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  User as LucideUser, Plus, DollarSign, Receipt, ArrowRight, LogOut, CheckCircle2, X, Edit2, CreditCard, Copy, Shield
+  User as LucideUser, Plus, DollarSign, Receipt, ArrowRight, LogOut, CheckCircle2, X, Edit2, CreditCard, Copy, Shield, Users, ArrowLeft
 } from 'lucide-react';
 import { 
   onAuthStateChanged, 
@@ -66,6 +66,7 @@ export default function App() {
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [filterPaidBy, setFilterPaidBy] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'members'>('dashboard');
 
   // 1. Auth Setup
   useEffect(() => {
@@ -161,13 +162,20 @@ export default function App() {
     await setDoc(settingsRef, { currentMemberId: null }, { merge: true });
   };
 
-  const handleDeleteMember = async () => {
-    if (!user || !currentMemberId) return;
-    const memberRef = doc(db, 'members', currentMemberId);
-    await deleteDoc(memberRef);
-    const settingsRef = doc(db, 'users', user.uid);
-    await setDoc(settingsRef, { currentMemberId: null }, { merge: true });
-    setIsProfileModalOpen(false);
+  const handleDeleteMember = async (memberId: string) => {
+    if (!user) return;
+    try {
+      const memberRef = doc(db, 'members', memberId);
+      await deleteDoc(memberRef);
+      // If the deleted member is the current user, clear their session
+      if (memberId === currentMemberId) {
+        const settingsRef = doc(db, 'users', user.uid);
+        await setDoc(settingsRef, { currentMemberId: null }, { merge: true });
+        setIsProfileModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Delete member error:", error);
+    }
   };
 
   const handleUpdateProfile = async (data: Partial<Member>) => {
@@ -314,6 +322,19 @@ export default function App() {
     return <OnboardingView members={members} onSelect={handleSelectMember} onCreate={handleCreateMember} />;
   }
 
+  if (currentView === 'members') {
+    return (
+      <MemberManagementView 
+        members={members}
+        expenses={expenses}
+        currentMember={currentMember}
+        onBack={() => setCurrentView('dashboard')}
+        onDeleteMember={handleDeleteMember}
+        onDeleteAllExpenses={handleDeleteAllExpenses}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20 md:pb-8">
       {/* Header */}
@@ -387,7 +408,10 @@ export default function App() {
           currentMember={currentMember}
           onClose={() => setIsProfileModalOpen(false)}
           onSave={handleUpdateProfile}
-          onDeleteAllExpenses={handleDeleteAllExpenses}
+          onManageMembers={() => {
+            setIsProfileModalOpen(false);
+            setCurrentView('members');
+          }}
         />
       )}
     </div>
@@ -395,6 +419,124 @@ export default function App() {
 }
 
 // --- Components ---
+function MemberManagementView({ 
+  members, 
+  expenses, 
+  currentMember,
+  onBack,
+  onDeleteMember,
+  onDeleteAllExpenses
+}: { 
+  members: Member[], 
+  expenses: Expense[],
+  currentMember: Member,
+  onBack: () => void,
+  onDeleteMember: (id: string) => void,
+  onDeleteAllExpenses: () => void
+}) {
+  const { balances } = useMemo(() => calculateBalancesAndSettlements(members, expenses), [members, expenses]);
+
+  const handleDeleteMemberByHost = (member: Member) => {
+    const balance = balances[member.id] || 0;
+    if (Math.abs(balance) > 0.01) {
+      alert(`無法刪除成員「${member.name}」，因為該成員還有未結清的款項 (${balance > 0 ? '需收回' : '需支付'} $${Math.abs(balance).toFixed(0)})。`);
+      return;
+    }
+    if (window.confirm(`確定要刪除成員「${member.name}」嗎？此操作不可復原。`)) {
+      onDeleteMember(member.id);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    if (window.confirm('確定要刪除「所有」支出紀錄嗎？此操作不可復原。')) {
+      onDeleteAllExpenses();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
+          <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="font-semibold text-lg">成員與管理</h1>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-4 h-4 text-indigo-600" /> 成員名單
+            </h2>
+            <span className="text-xs text-gray-500">{members.length} 位成員</span>
+          </div>
+
+          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden divide-y divide-gray-100">
+            {members.map(m => {
+              const balance = balances[m.id] || 0;
+              const canDelete = Math.abs(balance) < 0.01 && m.id !== currentMember.id;
+              return (
+                <div key={m.id} className="flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold">
+                      {m.name[0]}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900 flex items-center gap-1">
+                        {m.name}
+                        {m.id === currentMember.id && <span className="text-[10px] text-indigo-500 font-normal">(你自己)</span>}
+                        {m.isHost && <Shield className="w-3 h-3 text-amber-500" />}
+                      </span>
+                      <span className={`text-xs ${Math.abs(balance) < 0.01 ? 'text-green-500' : balance > 0 ? 'text-indigo-500' : 'text-red-500'}`}>
+                        {Math.abs(balance) < 0.01 ? '已結清' : `${balance > 0 ? '待收回' : '待支付'} $${Math.abs(balance).toFixed(0)}`}
+                      </span>
+                    </div>
+                  </div>
+                  {m.id !== currentMember.id && currentMember.isHost && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMemberByHost(m)}
+                      disabled={!canDelete}
+                      className={`p-2 rounded-lg transition-colors ${
+                        canDelete 
+                          ? 'text-red-500 hover:bg-red-50' 
+                          : 'text-gray-300 cursor-not-allowed'
+                      }`}
+                      title={!canDelete ? "餘額未結清" : "刪除成員"}
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {currentMember.isHost && (
+          <section className="space-y-4 pt-4 border-t">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-amber-500" /> 危險區域
+            </h2>
+            <div className="bg-white rounded-2xl border border-red-100 p-6 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">刪除所有支出紀錄</h3>
+                <p className="text-xs text-gray-500 mt-1">此操作將永久清除群組內的所有帳務資料，不可復原。</p>
+              </div>
+              <button type="button" onClick={handleDeleteAll}
+                className="w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                立即刪除所有紀錄
+              </button>
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
 
 function OnboardingView({ members, onSelect, onCreate }: { 
   members: Member[], 
@@ -844,11 +986,16 @@ function ExpenseModal({ members, currentMemberId, initialData, onClose, onSave }
   );
 }
 
-function ProfileModal({ currentMember, onClose, onSave, onDeleteAllExpenses }: { 
+function ProfileModal({ 
+  currentMember, 
+  onClose, 
+  onSave, 
+  onManageMembers
+}: { 
   currentMember: Member, 
   onClose: () => void, 
   onSave: (data: Partial<Member>) => void,
-  onDeleteAllExpenses: () => void
+  onManageMembers: () => void
 }) {
   const [name, setName] = useState(currentMember.name || '');
   const [bankCode, setBankCode] = useState(currentMember.bankCode || '');
@@ -866,12 +1013,6 @@ function ProfileModal({ currentMember, onClose, onSave, onDeleteAllExpenses }: {
   const handleClaimHost = () => {
     if (window.confirm('確定要成為主持人嗎？這將賦予你最高權限。')) {
       onSave({ isHost: true });
-    }
-  };
-
-  const handleDeleteAll = () => {
-    if (window.confirm('確定要刪除「所有」支出紀錄嗎？此操作不可復原。')) {
-      onDeleteAllExpenses();
     }
   };
 
@@ -894,59 +1035,64 @@ function ProfileModal({ currentMember, onClose, onSave, onDeleteAllExpenses }: {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱</label>
-            <div className="relative">
-              <LucideUser className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                placeholder="輸入你的名字"
-                className="w-full pl-9 pr-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
-                focus:border-transparent outline-none text-sm"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">收款銀行資訊</label>
-            <div className="flex gap-2">
-              <input 
-                type="tel" 
-                value={bankCode} 
-                onChange={(e) => setBankCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="代碼 (如: 822)"
-                className="w-1/3 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
-                focus:border-transparent outline-none font-mono text-sm"
-              />
-              <div className="relative flex-1">
-                <CreditCard
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="tel" 
-                  value={bankAccount} 
-                  onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
-                  placeholder="銀行帳號 (如: 1234567890)"
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱</label>
+              <div className="relative">
+                <LucideUser className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                  placeholder="輸入你的名字"
                   className="w-full pl-9 pr-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
-                  focus:border-transparent outline-none font-mono text-sm"
+                  focus:border-transparent outline-none text-sm"
+                  required
                 />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              設定後，其他人需要還你錢時，就會看到這個帳號並可一鍵複製。
-            </p>
-          </div>
 
-          <div className="pt-4 mt-2 border-t space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">收款銀行資訊</label>
+              <div className="flex gap-2">
+                <input 
+                  type="tel" 
+                  value={bankCode} 
+                  onChange={(e) => setBankCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="代碼 (如: 822)"
+                  className="w-1/3 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
+                  focus:border-transparent outline-none font-mono text-sm"
+                />
+                <div className="relative flex-1">
+                  <CreditCard
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="tel" 
+                    value={bankAccount} 
+                    onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
+                    placeholder="銀行帳號 (如: 1234567890)"
+                    className="w-full pl-9 pr-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
+                    focus:border-transparent outline-none font-mono text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                設定後，其他人需要還你錢時，就會看到這個帳號並可一鍵複製。
+              </p>
+            </div>
+
             <button type="submit"
               className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors">
               儲存設定
             </button>
-            
+          </div>
+
+          <div className="pt-4 mt-2 border-t space-y-3">
             {currentMember.isHost ? (
-              <button type="button" onClick={handleDeleteAll}
-                className="w-full py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                刪除所有支出紀錄
+              <button 
+                type="button" 
+                onClick={onManageMembers}
+                className="w-full py-3 bg-white text-indigo-600 border border-indigo-200 rounded-xl font-medium hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                成員與群組管理
               </button>
             ) : (
               <button type="button" onClick={handleClaimHost}
