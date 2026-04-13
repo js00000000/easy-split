@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBalancesAndSettlements, Member, Expense } from './settlement';
+import { calculateBalancesAndSettlements } from './settlement';
+import type { Member, Expense } from './settlement';
 
 describe('Settlement Logic', () => {
   it('should calculate correct balances for simple two-person split', () => {
@@ -180,9 +181,9 @@ describe('Settlement Logic', () => {
       { id: '4', name: 'D' },
     ];
     const expenses: Expense[] = [
-      { id: 'e1', amount: 100, paidBy: '1', splitAmong: ['2'] }, // B owes A 100
-      { id: 'e2', amount: 100, paidBy: '2', splitAmong: ['3'] }, // C owes B 100
-      { id: 'e3', amount: 100, paidBy: '3', splitAmong: ['4'] }, // D owes C 100
+      { id: 'e1', description: 'B owes A', amount: 100, paidBy: '1', splitAmong: ['2'] }, // B owes A 100
+      { id: 'e2', description: 'C owes B', amount: 100, paidBy: '2', splitAmong: ['3'] }, // C owes B 100
+      { id: 'e3', description: 'D owes C', amount: 100, paidBy: '3', splitAmong: ['4'] }, // D owes C 100
     ];
 
     const { balances, settlements } = calculateBalancesAndSettlements(members, expenses);
