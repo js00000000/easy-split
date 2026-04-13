@@ -510,19 +510,26 @@ function BalancesView({ members, expenses, currentMemberId }: {
     const debtors_copy = debtors.map(x => ({ ...x }));
     const creditors_copy = creditors.map(x => ({ ...x }));
 
-    while (d < debtors_copy.length && c < creditors_copy.length) { 
-      const debtor = debtors_copy[d]; 
-      const creditor = creditors_copy[c]; 
-      const amount = Math.min(debtor.amount, creditor.amount); 
-      transactions.push({ from: debtor.id, to: creditor.id, amount: amount }); 
+    while (d < debtors_copy.length && c < creditors_copy.length) {
+      const debtor = debtors_copy[d];
+      const creditor = creditors_copy[c];
+      const amount = Math.min(debtor.amount, creditor.amount);
+      transactions.push({ from: debtor.id, to: creditor.id, amount: amount });
       debtor.amount -= amount; 
       creditor.amount -= amount; 
       if (debtor.amount < 0.01) d++; 
       if (creditor.amount < 0.01) c++; 
     } 
-    return { balances: map, settlements: transactions }; 
-  }, [members, expenses]);
 
+    // Sort settlements: current member as payer first
+    transactions.sort((a, b) => {
+      if (a.from === currentMemberId) return -1;
+      if (b.from === currentMemberId) return 1;
+      return 0;
+    });
+
+    return { balances: map, settlements: transactions }; 
+  }, [members, expenses, currentMemberId]);
   const myBalance = balances[currentMemberId] || 0;
 
   return (
