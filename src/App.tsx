@@ -653,7 +653,7 @@ function ExpensesList({ expenses, members, onEdit, onDelete }: {
                 </div>
               </div>
 
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button onClick={() => onEdit(exp)}
                   className="text-gray-400 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50
                   transition-colors"
