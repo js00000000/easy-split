@@ -1,24 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  User as LucideUser, Plus, DollarSign, Receipt, ArrowRight, LogOut, CheckCircle2, X, Edit2, CreditCard, Copy, Shield, Users, ArrowLeft
+  User as LucideUser, Plus, DollarSign, Receipt, ArrowRight, LogOut, CheckCircle2, X, Edit2, CreditCard, Copy, Shield, Users, ArrowLeft, Clock, Trash2
 } from 'lucide-react';
 import { 
   onAuthStateChanged, 
   signInAnonymously,
+  signInWithPopup,
+  signOut,
   type User 
 } from 'firebase/auth';
 import {
   collection, 
   doc, 
+  getDoc,
+  getDocs,
   setDoc, 
   onSnapshot, 
   addDoc, 
   updateDoc, 
   deleteDoc, 
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  arrayUnion,
+  arrayRemove,
+  query,
+  where,
+  documentId
 } from 'firebase/firestore';
-import { db, auth } from './lib/firebase';
+import { db, auth, googleProvider } from './lib/firebase';
 import { calculateBalancesAndSettlements } from './lib/settlement';
 
 // --- Types ---
@@ -26,11 +35,19 @@ import { calculateBalancesAndSettlements } from './lib/settlement';
 interface Member {
   id: string;
   name: string;
+  userId?: string; // Binds to a Firebase User UID
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   bankCode?: string;
   bankAccount?: string;
   isHost?: boolean;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  createdBy: string;
+  createdAt: Timestamp;
 }
 
 interface Expense {
@@ -45,7 +62,9 @@ interface Expense {
 }
 
 interface UserSettings {
-  currentMemberId: string | null;
+  lastGroupId: string | null;
+  joinedGroupIds?: string[];
+  currentMemberId?: string | null;
 }
 
 // --- Main App Component ---
@@ -56,6 +75,9 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   // App State
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+  const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
@@ -70,130 +92,324 @@ export default function App() {
 
   // 1. Auth Setup
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        await signInAnonymously(auth);
-      } catch (error: any) {
-        console.error("Auth error:", error);
-        setAuthError(error.message);
-        setAuthLoading(false);
-      }
-    };
-    initAuth();
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setAuthError(null);
+        setAuthLoading(false);
+      } else {
+        // If not logged in, sign in anonymously by default
+        signInAnonymously(auth).catch((error) => {
+          console.error("Auth error:", error);
+          setAuthError(error.message);
+          setAuthLoading(false);
+        });
       }
-      setAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // 2. Data Fetching
+  // 2. Data Fetching - Step 1: User Settings
   useEffect(() => {
     if (!user) return;
 
-    // Fetch Public Members
-    const membersRef = collection(db, 'members');
-    const unsubMembers = onSnapshot(membersRef, (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      // Sort by creation time safely
-      membersData.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
-      setMembers(membersData);
-    }, (error) => console.error("Members fetch error:", error));
-
-    // Fetch Public Expenses
-    const expensesRef = collection(db, 'expenses');
-    const unsubExpenses = onSnapshot(expensesRef, (snapshot) => {
-      const expensesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
-      // Sort newest first
-      expensesData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-      setExpenses(expensesData);
-    }, (error) => console.error("Expenses fetch error:", error));
-
-    // Fetch User's Private Settings (To remember selected member)
     const settingsRef = doc(db, 'users', user.uid);
     const unsubSettings = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
-        setCurrentMemberId((docSnap.data() as UserSettings).currentMemberId);
+        const data = docSnap.data() as UserSettings;
+        setGroupId(data.lastGroupId || null);
+        
+        // Step 1.5: Fetch metadata for all joined groups
+        if (data.joinedGroupIds && data.joinedGroupIds.length > 0) {
+          const groupsQuery = query(
+            collection(db, 'groups'), 
+            where(documentId(), 'in', data.joinedGroupIds.slice(0, 30)) // Firestore 'in' limit is 30
+          );
+          getDocs(groupsQuery).then(snapshot => {
+            const groupsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+            setMyGroups(groupsData);
+          }).catch(err => console.error("Fetch my groups error:", err));
+        } else {
+          setMyGroups([]);
+        }
       } else {
-        setCurrentMemberId(null);
+        setGroupId(null);
+        setMyGroups([]);
       }
-      setIsLoading(false);
     }, (error) => {
       console.error("Settings fetch error:", error);
       setIsLoading(false);
     });
 
-    return () => {
-      unsubMembers();
-      unsubExpenses();
-      unsubSettings();
-    };
+    return () => unsubSettings();
   }, [user]);
 
+  // 3. Data Fetching - Step 2: Group Specific Data
+  useEffect(() => {
+    if (!user || !groupId) {
+      if (!user) {
+        // Still waiting for auth
+      } else {
+        // No group selected, stop loading
+        setIsLoading(false);
+      }
+      setMembers([]);
+      setExpenses([]);
+      setCurrentGroup(null);
+      setCurrentMemberId(null);
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Fetch Group Metadata
+    const groupRef = doc(db, 'groups', groupId);
+    const unsubGroup = onSnapshot(groupRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setCurrentGroup({ id: docSnap.id, ...docSnap.data() } as Group);
+      } else {
+        console.error("Group not found");
+        setGroupId(null); // Reset if group doesn't exist
+      }
+    });
+
+    // Fetch Members in Group
+    const membersRef = collection(db, 'groups', groupId, 'members');
+    const unsubMembers = onSnapshot(membersRef, (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      membersData.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+      setMembers(membersData);
+
+      // Auto-identify current member based on user binding
+      const myMember = membersData.find(m => m.userId === user.uid);
+      if (myMember) {
+        setCurrentMemberId(myMember.id);
+      } else {
+        setCurrentMemberId(null);
+      }
+      
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Members fetch error:", error);
+      setIsLoading(false);
+    });
+
+    // Fetch Expenses in Group
+    const expensesRef = collection(db, 'groups', groupId, 'expenses');
+    const unsubExpenses = onSnapshot(expensesRef, (snapshot) => {
+      const expensesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
+      expensesData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setExpenses(expensesData);
+    }, (error) => console.error("Expenses fetch error:", error));
+
+    return () => {
+      unsubGroup();
+      unsubMembers();
+      unsubExpenses();
+    };
+  }, [user, groupId]);
+
   // Actions
-  const handleSelectMember = async (memberId: string | null) => {
+  const handleGoogleLogin = async () => {
+    try {
+      setAuthLoading(true);
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      console.error("Google login error:", error);
+      setAuthError(error.message);
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      setGroupId(null);
+      setCurrentGroup(null);
+      setMembers([]);
+      setExpenses([]);
+    } catch (error: any) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const handleCreateGroup = async (name: string) => {
+    if (!user || !name.trim()) return;
+    setIsLoading(true);
+    try {
+      const groupRef = doc(collection(db, 'groups'));
+      const groupId = groupRef.id;
+
+      await setDoc(groupRef, {
+        name: name.trim(),
+        createdBy: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      // Create initial host member
+      const memberRef = doc(collection(db, 'groups', groupId, 'members'));
+      await setDoc(memberRef, {
+        name: user.displayName || '主持人',
+        userId: user.uid,
+        isHost: true,
+        createdAt: serverTimestamp()
+      });
+
+      // Update user settings
+      await setDoc(doc(db, 'users', user.uid), {
+        lastGroupId: groupId,
+        joinedGroupIds: arrayUnion(groupId)
+      }, { merge: true });
+
+      setGroupId(groupId);
+    } catch (error) {
+      console.error("Create group error:", error);
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoinGroup = async (id: string) => {
+    if (!user || !id.trim()) return;
+    setIsLoading(true);
+    const gid = id.trim();
+    try {
+      const groupRef = doc(db, 'groups', gid);
+      const groupSnap = await getDoc(groupRef);
+
+      if (groupSnap.exists()) {
+        await setDoc(doc(db, 'users', user.uid), {
+          lastGroupId: gid,
+          joinedGroupIds: arrayUnion(gid)
+        }, { merge: true });
+        setGroupId(gid);
+      } else {
+        alert("找不到此群組 ID，請確認後再試。");
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Join group error:", error);
+      setIsLoading(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
     if (!user) return;
-    const settingsRef = doc(db, 'users', user.uid);
-    await setDoc(settingsRef, { currentMemberId: memberId }, { merge: true });
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        lastGroupId: null
+      }, { merge: true });
+      setGroupId(null);
+      setCurrentGroup(null);
+      setMembers([]);
+      setExpenses([]);
+    } catch (error) {
+      console.error("Leave group error:", error);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!user || !groupId || !currentMemberId) return;
+    
+    const currentMember = members.find(m => m.id === currentMemberId);
+    if (!currentMember?.isHost) return;
+
+    if (window.confirm(`確定要永久刪除群組「${currentGroup?.name}」嗎？\n此操作會刪除所有成員與支出紀錄，且不可復原！`)) {
+      setIsLoading(true);
+      try {
+        // Delete all expenses
+        for (const exp of expenses) {
+          await deleteDoc(doc(db, 'groups', groupId, 'expenses', exp.id));
+        }
+        
+        // Delete all members
+        for (const member of members) {
+          await deleteDoc(doc(db, 'groups', groupId, 'members', member.id));
+        }
+
+        // Delete group document
+        await deleteDoc(doc(db, 'groups', groupId));
+
+        // Update user settings to remove group from history
+        await setDoc(doc(db, 'users', user.uid), {
+          lastGroupId: null,
+          joinedGroupIds: arrayRemove(groupId)
+        }, { merge: true });
+
+        // Reset local state
+        setGroupId(null);
+        setCurrentGroup(null);
+        setMembers([]);
+        setExpenses([]);
+      } catch (error) {
+        console.error("Delete group error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleSelectMember = async (memberId: string | null) => {
+    if (!user || !groupId) return;
+
+    if (memberId) {
+      const member = members.find(m => m.id === memberId);
+      if (member && member.userId && member.userId !== user.uid) {
+        alert("此成員已被其他使用者綁定。");
+        return;
+      }
+
+      // Bind member to user
+      const memberRef = doc(db, 'groups', groupId, 'members', memberId);
+      await updateDoc(memberRef, {
+        userId: user.uid,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      // Unbind if we allow it, but here it's more like Logout member
+      if (currentMemberId) {
+        const memberRef = doc(db, 'groups', groupId, 'members', currentMemberId);
+        await updateDoc(memberRef, {
+          userId: null,
+          updatedAt: serverTimestamp()
+        });
+      }
+    }
   };
 
   const handleCreateMember = async (name: string) => {
-    if (!user || !name.trim()) return;
+    if (!user || !groupId || !name.trim()) return;
 
     // 預先產生新成員的 ID
-    const newDocRef = doc(collection(db, 'members'));
+    const membersRef = collection(db, 'groups', groupId, 'members');
+    const newDocRef = doc(membersRef);
 
-    // 不等待伺服器寫入完成，直接在本地端更新並跳轉畫面，避免操作卡頓
-    setDoc(newDocRef, {
-      name: name.trim(),
-      createdAt: serverTimestamp()
-    }).catch(err => console.error("Create member error:", err));
-
-    handleSelectMember(newDocRef.id);
-  };
-
-  const handleLogoutMember = async () => {
-    if (!user) return;
-    const settingsRef = doc(db, 'users', user.uid);
-    await setDoc(settingsRef, { currentMemberId: null }, { merge: true });
+    try {
+      await setDoc(newDocRef, {
+        name: name.trim(),
+        userId: user.uid, // Auto bind to creator
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Create member error:", err);
+    }
   };
 
   const handleDeleteMember = async (memberId: string) => {
-    if (!user) return;
+    if (!user || !groupId) return;
     try {
-      const memberRef = doc(db, 'members', memberId);
+      const memberRef = doc(db, 'groups', groupId, 'members', memberId);
       await deleteDoc(memberRef);
-      // If the deleted member is the current user, clear their session
-      if (memberId === currentMemberId) {
-        const settingsRef = doc(db, 'users', user.uid);
-        await setDoc(settingsRef, { currentMemberId: null }, { merge: true });
-        setIsProfileModalOpen(false);
-      }
     } catch (error) {
       console.error("Delete member error:", error);
     }
   };
 
   const handleUpdateProfile = async (data: Partial<Member>) => {
-    if (!user || !currentMemberId) return;
+    if (!user || !groupId || !currentMemberId) return;
 
     try {
-      // 如果新資料包含成為主持人，則先移除現有的主持人
-      if (data.isHost) {
-        const currentHost = members.find(m => m.isHost && m.id !== currentMemberId);
-        if (currentHost) {
-          await updateDoc(doc(db, 'members', currentHost.id), {
-            isHost: false,
-            updatedAt: serverTimestamp()
-          });
-        }
-      }
-
-      const memberRef = doc(db, 'members', currentMemberId);
+      const memberRef = doc(db, 'groups', groupId, 'members', currentMemberId);
       await updateDoc(memberRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -204,12 +420,24 @@ export default function App() {
     }
   };
 
-  const handleDeleteAllExpenses = async () => {
-    if (!user) return;
+  const handleUpdateGroupName = async (newName: string) => {
+    if (!user || !groupId || !newName.trim()) return;
     try {
-      // 這裡簡單地逐一刪除，實務上如果資料量大建議用 WriteBatch
+      const groupRef = doc(db, 'groups', groupId);
+      await updateDoc(groupRef, {
+        name: newName.trim(),
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Update group name error:", error);
+    }
+  };
+
+  const handleDeleteAllExpenses = async () => {
+    if (!user || !groupId) return;
+    try {
       for (const exp of expenses) {
-        await deleteDoc(doc(db, 'expenses', exp.id));
+        await deleteDoc(doc(db, 'groups', groupId, 'expenses', exp.id));
       }
       setIsProfileModalOpen(false);
     } catch (error) {
@@ -218,12 +446,11 @@ export default function App() {
   };
 
   const handleAddExpense = async (expenseData: Omit<Expense, 'id' | 'createdBy' | 'createdAt'>) => {
-    if (!user || !currentMemberId) return;
+    if (!user || !groupId || !currentMemberId) return;
 
-    // 點擊確認後立刻關閉視窗
     setIsExpenseModalOpen(false);
 
-    const expensesRef = collection(db, 'expenses');
+    const expensesRef = collection(db, 'groups', groupId, 'expenses');
     try {
       await addDoc(expensesRef, {
         ...expenseData,
@@ -236,13 +463,12 @@ export default function App() {
   };
 
   const handleUpdateExpense = async (expenseId: string, expenseData: Omit<Expense, 'id' | 'createdBy' | 'createdAt'>) => {
-    if (!user) return;
+    if (!user || !groupId) return;
 
-    // 點擊確認後立刻關閉視窗與清除編輯狀態
     setIsExpenseModalOpen(false);
     setExpenseToEdit(null);
 
-    const expenseRef = doc(db, 'expenses', expenseId);
+    const expenseRef = doc(db, 'groups', groupId, 'expenses', expenseId);
     try {
       await updateDoc(expenseRef, {
         ...expenseData,
@@ -254,10 +480,9 @@ export default function App() {
   };
 
   const handleDeleteExpense = async (expense: Expense) => {
-    // 移除建立者檢查，讓所有人都可以刪除
-    if (!user) return;
+    if (!user || !groupId) return;
     if (window.confirm('確定要刪除這筆支出紀錄嗎？')) {
-      const expenseRef = doc(db, 'expenses', expense.id);
+      const expenseRef = doc(db, 'groups', groupId, 'expenses', expense.id);
       await deleteDoc(expenseRef);
     }
   };
@@ -318,19 +543,38 @@ export default function App() {
   }
 
   // Routing Logic
-  if (!currentMemberId || !currentMember) {
-    return <OnboardingView members={members} onSelect={handleSelectMember} onCreate={handleCreateMember} />;
+  if (!groupId || !currentMemberId || !currentMember) {
+    return (
+      <OnboardingView 
+        members={members} 
+        user={user}
+        groupId={groupId}
+        currentGroup={currentGroup}
+        myGroups={myGroups}
+        onSelect={handleSelectMember} 
+        onCreate={handleCreateMember} 
+        onGoogleLogin={handleGoogleLogin}
+        onLogout={handleLogout}
+        onCreateGroup={handleCreateGroup}
+        onJoinGroup={handleJoinGroup}
+        onLeaveGroup={handleLeaveGroup}
+        onSelectGroup={(id) => setGroupId(id)}
+      />
+    );
   }
 
   if (currentView === 'members') {
     return (
       <MemberManagementView 
-        members={members}
+        members={members} 
         expenses={expenses}
         currentMember={currentMember}
+        currentGroup={currentGroup}
         onBack={() => setCurrentView('dashboard')}
         onDeleteMember={handleDeleteMember}
         onDeleteAllExpenses={handleDeleteAllExpenses}
+        onUpdateGroupName={handleUpdateGroupName}
+        onDeleteGroup={handleDeleteGroup}
       />
     );
   }
@@ -340,28 +584,38 @@ export default function App() {
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-indigo-600">
-            <Receipt className="w-6 h-6" />
-            <h1 className="font-semibold text-lg">群組分帳</h1>
-          </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 text-indigo-600">
+              <Receipt className="w-5 h-5" />
+              <h1 className="font-bold text-base leading-tight">{currentGroup?.name || '群組分帳'}</h1>
+            </div>
             <button 
+              onClick={() => {
+                navigator.clipboard.writeText(groupId);
+                alert('已複製群組 ID');
+              }}
+              className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5"
+            >
+              ID: {groupId.slice(0, 8)}... <Copy className="w-2 h-2" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
               onClick={() => setIsProfileModalOpen(true)}
               className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors cursor-pointer"
               title="個人設定"
             >
               <LucideUser className="w-4 h-4" />
-              <span>{currentMember.name}</span>
+              <span className="max-w-[80px] truncate">{currentMember.name}</span>
             </button>
-            <button onClick={handleLogoutMember}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-              title="切換使用者">
+            <button onClick={handleLeaveGroup}
+              className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+              title="切換群組">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
-
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <BalancesView members={members} expenses={expenses} currentMemberId={currentMemberId} />
 
@@ -419,22 +673,36 @@ export default function App() {
 }
 
 // --- Components ---
-function MemberManagementView({ 
-  members, 
-  expenses, 
+function MemberManagementView({
+  members,
+  expenses,
   currentMember,
+  currentGroup,
   onBack,
   onDeleteMember,
-  onDeleteAllExpenses
-}: { 
-  members: Member[], 
+  onDeleteAllExpenses,
+  onUpdateGroupName,
+  onDeleteGroup
+}: {
+  members: Member[],
   expenses: Expense[],
   currentMember: Member,
+  currentGroup: Group | null,
   onBack: () => void,
   onDeleteMember: (id: string) => void,
-  onDeleteAllExpenses: () => void
+  onDeleteAllExpenses: () => void,
+  onUpdateGroupName: (name: string) => void,
+  onDeleteGroup: () => void
 }) {
+  const [newName, setNewName] = useState(currentGroup?.name || '');
   const { balances } = useMemo(() => calculateBalancesAndSettlements(members, expenses), [members, expenses]);
+
+  const handleSaveGroupName = () => {
+    if (newName.trim() && newName !== currentGroup?.name) {
+      onUpdateGroupName(newName);
+      alert('群組名稱已更新');
+    }
+  };
 
   const handleDeleteMemberByHost = (member: Member) => {
     const balance = balances[member.id] || 0;
@@ -477,6 +745,8 @@ function MemberManagementView({
             {members.map(m => {
               const balance = balances[m.id] || 0;
               const canDelete = Math.abs(balance) < 0.01 && m.id !== currentMember.id;
+              const isClaimedByOthers = m.userId && m.userId !== currentMember.userId;
+
               return (
                 <div key={m.id} className="flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors">
                   <div className="flex items-center gap-3">
@@ -494,24 +764,85 @@ function MemberManagementView({
                       </span>
                     </div>
                   </div>
-                  {m.id !== currentMember.id && currentMember.isHost && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteMemberByHost(m)}
-                      disabled={!canDelete}
-                      className={`p-2 rounded-lg transition-colors ${
-                        canDelete 
-                          ? 'text-red-500 hover:bg-red-50' 
-                          : 'text-gray-300 cursor-not-allowed'
-                      }`}
-                      title={!canDelete ? "餘額未結清" : "刪除成員"}
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isClaimedByOthers && <div className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">已綁定</div>}
+                    {m.id !== currentMember.id && currentMember.isHost && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMemberByHost(m)}
+                        disabled={!canDelete}
+                        className={`p-2 rounded-lg transition-colors ${
+                          canDelete 
+                            ? 'text-red-500 hover:bg-red-50' 
+                            : 'text-gray-300 cursor-not-allowed'
+                        }`}
+                        title={!canDelete ? "餘額未結清" : "刪除成員"}
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="space-y-4 pt-4 border-t">
+          <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+            <Plus className="w-4 h-4 text-indigo-600" /> 群組資訊
+          </h2>
+          <div className="bg-white rounded-2xl border shadow-sm p-5 space-y-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-gray-500">群組名稱</span>
+              {currentMember.isHost ? (
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={newName} 
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border rounded-lg focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
+                  />
+                  <button 
+                    onClick={handleSaveGroupName}
+                    disabled={!newName.trim() || newName === currentGroup?.name}
+                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors"
+                  >
+                    儲存
+                  </button>
+                </div>
+              ) : (
+                <span className="text-sm font-medium">{currentGroup?.name}</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">群組 ID</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{currentGroup?.id}</code>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentGroup?.id || '');
+                    alert('已複製群組 ID');
+                  }}
+                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
+            {currentMember.isHost && (
+              <div className="pt-4 mt-2 border-t flex items-center justify-between">
+                <span className="text-sm text-red-600 font-medium">刪除此群組</span>
+                <button 
+                  onClick={onDeleteGroup}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  刪除
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -538,48 +869,102 @@ function MemberManagementView({
   );
 }
 
-function OnboardingView({ members, onSelect, onCreate }: { 
+function OnboardingView({ members, user, groupId, currentGroup, myGroups, onSelect, onCreate, onGoogleLogin, onLogout, onCreateGroup, onJoinGroup, onLeaveGroup, onSelectGroup }: { 
   members: Member[], 
+  user: User | null,
+  groupId: string | null,
+  currentGroup: Group | null,
+  myGroups: Group[],
   onSelect: (id: string) => void, 
-  onCreate: (name: string) => void 
+  onCreate: (name: string) => void,
+  onGoogleLogin: () => void,
+  onLogout: () => void,
+  onCreateGroup: (name: string) => void,
+  onJoinGroup: (id: string) => void,
+  onLeaveGroup: () => void,
+  onSelectGroup: (id: string) => void
 }) {
   const [newName, setNewName] = useState('');
+
+  if (!groupId) {
+    return (
+      <GroupSelectionView 
+        user={user} 
+        myGroups={myGroups}
+        onGoogleLogin={onGoogleLogin} 
+        onLogout={onLogout} 
+        onCreateGroup={onCreateGroup} 
+        onJoinGroup={onJoinGroup} 
+        onSelectGroup={onSelectGroup}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border p-6 space-y-8">
         <div className="text-center space-y-2">
-          <div
-            className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Receipt className="w-6 h-6" />
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <button onClick={onLeaveGroup} className="text-gray-400 hover:text-indigo-600 transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+              <Receipt className="w-5 h-5" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">歡迎使用群組分帳</h1>
+          <h1 className="text-xl font-bold text-gray-900">{currentGroup?.name}</h1>
           <p className="text-gray-500 text-sm">請選擇你的身分，或建立新成員</p>
         </div>
 
         <div className="space-y-6">
           {members.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-gray-700">選擇既有成員：</h2>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-100"></div>
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-bold">
+                  <span className="px-2 bg-white text-gray-400">選擇既有成員</span>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                {members.map(m => (
-                  <button key={m.id} onClick={() => onSelect(m.id)}
-                    className="p-3 border rounded-xl text-left hover:border-indigo-600 hover:bg-indigo-50
-                    transition-colors"
-                  >
-                    <div className="font-medium text-gray-900 truncate">{m.name}</div>
-                  </button>
-                ))}
+                {members.map(m => {
+                  const isClaimedByOthers = m.userId && m.userId !== user?.uid;
+                  const isMe = m.userId === user?.uid;
+                  
+                  return (
+                    <button 
+                      key={m.id} 
+                      onClick={() => !isClaimedByOthers && onSelect(m.id)}
+                      disabled={!!isClaimedByOthers}
+                      className={`p-3 border rounded-xl text-left transition-all ${
+                        isMe 
+                          ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' 
+                          : isClaimedByOthers 
+                            ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed' 
+                            : 'hover:border-indigo-600 hover:bg-indigo-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 truncate flex items-center gap-1">
+                        {m.name}
+                        {isMe && <CheckCircle2 className="w-3 h-3 text-indigo-600" />}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {isMe ? '這就是你' : isClaimedByOthers ? '已被綁定' : '尚未綁定'}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-gray-100"></div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">或</span>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-bold">
+              <span className="px-2 bg-white text-gray-400">或</span>
             </div>
           </div>
 
@@ -591,15 +976,141 @@ function OnboardingView({ members, onSelect, onCreate }: {
               <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
                 placeholder="輸入你的名字"
                 className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
-                focus:border-transparent outline-none"
+                focus:border-transparent outline-none text-sm"
                 required
               />
               <button type="submit" disabled={!newName.trim()}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors">
+                className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors text-sm">
                 進入
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupSelectionView({ user, myGroups, onGoogleLogin, onLogout, onCreateGroup, onJoinGroup, onSelectGroup }: {
+  user: User | null,
+  myGroups: Group[],
+  onGoogleLogin: () => void,
+  onLogout: () => void,
+  onCreateGroup: (name: string) => void,
+  onJoinGroup: (id: string) => void,
+  onSelectGroup: (id: string) => void
+}) {
+  const [groupName, setGroupName] = useState('');
+  const [groupIdToJoin, setGroupIdToJoin] = useState('');
+  const isAnonymous = user?.isAnonymous;
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border p-6 space-y-8">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-6 h-6" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">群組分帳</h1>
+          <p className="text-gray-500 text-sm">建立新群組，或加入既有群組</p>
+        </div>
+
+        <div className="space-y-6">
+          {/* Auth Status */}
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-3 overflow-hidden">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full border border-indigo-200" />
+              ) : (
+                <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-xs">
+                  {user?.displayName?.[0] || user?.email?.[0] || '?'}
+                </div>
+              )}
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-medium text-gray-900 truncate">
+                  {isAnonymous ? '匿名使用者' : (user?.displayName || user?.email || '已登入')}
+                </span>
+                {isAnonymous && <button onClick={onGoogleLogin} className="text-[10px] text-indigo-600 text-left hover:underline">使用 Google 登入以永久保存</button>}
+              </div>
+            </div>
+            <button onClick={onLogout} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {myGroups.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-indigo-600" /> 最近使用的群組
+                </h2>
+                <div className="space-y-2">
+                  {myGroups.map(g => (
+                    <button 
+                      key={g.id} 
+                      onClick={() => onSelectGroup(g.id)}
+                      className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-indigo-600 hover:bg-indigo-50 transition-all group"
+                    >
+                      <div className="flex flex-col items-start min-w-0">
+                        <span className="font-medium text-gray-900 truncate">{g.name}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">{g.id.slice(0, 12)}...</span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-100"></div>
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-bold">
+                <span className="px-2 bg-white text-gray-400">或是</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-sm font-bold text-gray-700">建立新群組</h2>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={groupName} 
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="輸入群組名稱"
+                  className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
+                />
+                <button 
+                  onClick={() => onCreateGroup(groupName)}
+                  disabled={!groupName.trim()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap"
+                >
+                  建立
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <h2 className="text-sm font-bold text-gray-700">加入既有群組</h2>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={groupIdToJoin} 
+                  onChange={(e) => setGroupIdToJoin(e.target.value)}
+                  placeholder="輸入群組 ID"
+                  className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm font-mono"
+                />
+                <button 
+                  onClick={() => onJoinGroup(groupIdToJoin)}
+                  disabled={!groupIdToJoin.trim()}
+                  className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-50 transition-colors text-sm whitespace-nowrap"
+                >
+                  加入
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1010,12 +1521,6 @@ function ProfileModal({
     });
   };
 
-  const handleClaimHost = () => {
-    if (window.confirm('確定要成為主持人嗎？這將賦予你最高權限。')) {
-      onSave({ isHost: true });
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
@@ -1084,8 +1589,8 @@ function ProfileModal({
             </button>
           </div>
 
-          <div className="pt-4 mt-2 border-t space-y-3">
-            {currentMember.isHost ? (
+          {currentMember.isHost && (
+            <div className="pt-4 mt-2 border-t">
               <button 
                 type="button" 
                 onClick={onManageMembers}
@@ -1094,14 +1599,8 @@ function ProfileModal({
                 <Users className="w-4 h-4" />
                 成員與群組管理
               </button>
-            ) : (
-              <button type="button" onClick={handleClaimHost}
-                className="w-full py-3 bg-amber-50 text-amber-700 border border-amber-100 rounded-xl font-medium hover:bg-amber-100 transition-colors flex items-center justify-center gap-2">
-                <Shield className="w-4 h-4" />
-                成為主持人 (最高權限)
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
