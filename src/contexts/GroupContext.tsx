@@ -249,6 +249,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const handleUpdateProfile = async (data: Partial<Member>) => {
     if (!user || !groupId || !currentMemberId) return;
     await updateDoc(doc(db, 'groups', groupId, 'members', currentMemberId), { ...data, updatedAt: serverTimestamp() });
+    await alert('個人設定已更新');
   };
 
   const handleUpdateGroupName = async (newName: string) => {

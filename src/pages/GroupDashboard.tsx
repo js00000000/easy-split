@@ -147,7 +147,10 @@ export function GroupDashboard() {
         <ProfileModal
           currentMember={currentMember}
           onClose={() => setIsProfileModalOpen(false)}
-          onSave={handleUpdateProfile}
+          onSave={async (data) => {
+            await handleUpdateProfile(data);
+            setIsProfileModalOpen(false);
+          }}
           onManageMembers={() => {
             setIsProfileModalOpen(false);
             navigate(`/group/${groupId}/members`);
