@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Users, Shield, X, Plus, Copy, Trash2, DollarSign } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { Member, Group, Expense } from '../types';
 import { calculateBalancesAndSettlements } from '../lib/settlement';
 import { useDialog } from '../contexts/DialogContext';
@@ -29,7 +30,7 @@ export function MemberManagementView({
   onDeleteGroup,
   onCreateMember
 }: MemberManagementViewProps) {
-  const { alert, confirm } = useDialog();
+  const { confirm } = useDialog();
   const [newName, setNewName] = useState(currentGroup?.name || '');
   const [newMemberName, setNewMemberName] = useState('');
   const { balances } = useMemo(() => calculateBalancesAndSettlements(members, expenses), [members, expenses]);
@@ -37,19 +38,20 @@ export function MemberManagementView({
   const handleSaveGroupName = async () => {
     if (newName.trim() && newName !== currentGroup?.name) {
       onUpdateGroupName(newName);
-      await alert('群組名稱已更新');
+      toast.success('群組名稱已更新');
     }
   };
 
   const handleDeleteMemberByHost = async (member: Member) => {
     const balance = balances[member.id] || 0;
     if (Math.abs(balance) > 0.01) {
-      await alert(`無法刪除成員「${member.name}」，因為該成員還有未結清的款項 (${balance > 0 ? '需收回' : '需支付'} $${Math.abs(balance).toFixed(0)})。`);
+      toast.error(`無法刪除成員「${member.name}」，因為該成員還有未結清的款項 (${balance > 0 ? '需收回' : '需支付'} $${Math.abs(balance).toFixed(0)})。`);
       return;
     }
     const isConfirmed = await confirm(`確定要刪除成員「${member.name}」嗎？此操作不可復原。`);
     if (isConfirmed) {
       onDeleteMember(member.id);
+      toast.success('成員已刪除');
     }
   };
 
@@ -64,6 +66,7 @@ export function MemberManagementView({
     if (newMemberName.trim()) {
       onCreateMember(newMemberName.trim());
       setNewMemberName('');
+      toast.success('成員已新增');
     }
   };
 
@@ -117,11 +120,10 @@ export function MemberManagementView({
                         type="button"
                         onClick={() => handleDeleteMemberByHost(m)}
                         disabled={!canDelete}
-                        className={`p-2 rounded-lg transition-colors ${
-                          canDelete 
-                            ? 'text-red-500 hover:bg-red-50' 
+                        className={`p-2 rounded-lg transition-colors ${canDelete
+                            ? 'text-red-500 hover:bg-red-50'
                             : 'text-gray-300 cursor-not-allowed'
-                        }`}
+                          }`}
                         title={!canDelete ? "餘額未結清" : "刪除成員"}
                       >
                         <X className="w-5 h-5" />
@@ -136,15 +138,15 @@ export function MemberManagementView({
           {currentMember.isHost && (
             <div className="bg-white rounded-2xl border shadow-sm p-4 mt-2">
               <div className="flex gap-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="新增成員姓名"
-                  value={newMemberName} 
+                  value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddMember()}
                   className="flex-1 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
                 />
-                <button 
+                <button
                   onClick={handleAddMember}
                   disabled={!newMemberName.trim()}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors flex items-center gap-1"
@@ -166,13 +168,13 @@ export function MemberManagementView({
               <span className="text-sm text-gray-500">群組名稱</span>
               {currentMember.isHost ? (
                 <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={newName} 
+                  <input
+                    type="text"
+                    value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     className="flex-1 px-3 py-1.5 border rounded-lg focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
                   />
-                  <button 
+                  <button
                     onClick={handleSaveGroupName}
                     disabled={!newName.trim() || newName === currentGroup?.name}
                     className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors"
@@ -188,10 +190,10 @@ export function MemberManagementView({
               <span className="text-sm text-gray-500">群組 ID</span>
               <div className="flex items-center gap-2">
                 <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{currentGroup?.id}</code>
-                <button 
-                  onClick={async () => {
+                <button
+                  onClick={() => {
                     navigator.clipboard.writeText(currentGroup?.id || '');
-                    await alert('已複製群組 ID');
+                    toast.success('已複製群組 ID');
                   }}
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
                 >
@@ -199,11 +201,11 @@ export function MemberManagementView({
                 </button>
               </div>
             </div>
-            
+
             {currentMember.isHost && (
               <div className="pt-4 mt-2 border-t flex items-center justify-between">
                 <span className="text-sm text-red-600 font-medium">刪除此群組</span>
-                <button 
+                <button
                   onClick={onDeleteGroup}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-xs font-medium transition-colors"
                 >

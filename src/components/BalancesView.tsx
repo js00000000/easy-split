@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { DollarSign, CheckCircle2, ArrowRight, CreditCard, Copy } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { Member, Expense } from '../types';
 import { calculateBalancesAndSettlements } from '../lib/settlement';
 
@@ -74,8 +75,6 @@ function SettlementRow({ settlement, members, currentMemberId }: {
   members: Member[], 
   currentMemberId: string 
 }) {
-  const [copied, setCopied] = useState(false);
-
   const getMemberName = (id: string) => members.find(m => m.id === id)?.name || '未知';
   const toMember = members.find(m => m.id === settlement.to);
   const isPayer = settlement.from === currentMemberId;
@@ -87,12 +86,12 @@ function SettlementRow({ settlement, members, currentMemberId }: {
   const handleCopy = () => {
     const text = toMember?.bankAccount || '';
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+      navigator.clipboard.writeText(text)
+        .then(() => toast.success('帳號已複製'))
+        .catch(() => fallbackCopy(text));
     } else {
       fallbackCopy(text);
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const fallbackCopy = (text: string) => {
@@ -107,8 +106,10 @@ function SettlementRow({ settlement, members, currentMemberId }: {
     textArea.select();
     try {
       document.execCommand('copy');
+      toast.success('帳號已複製');
     } catch (err) {
       console.error('Unable to copy', err);
+      toast.error('複製失敗');
     }
     document.body.removeChild(textArea);
   };
@@ -137,17 +138,8 @@ function SettlementRow({ settlement, members, currentMemberId }: {
           </div>
           <button onClick={handleCopy}
             className="shrink-0 ml-2 text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-md transition-colors flex items-center gap-1">
-            {copied ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /><span
-                  className="text-[10px] text-green-600 font-medium hidden sm:inline">已複製</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" /><span
-                  className="text-[10px] font-medium hidden sm:inline">複製</span>
-              </>
-            )}
+            <Copy className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-medium hidden sm:inline">複製</span>
           </button>
         </div>
       )}

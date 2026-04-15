@@ -22,7 +22,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [title, setTitle] = useState('');
   const [confirmLabel, setConfirmLabel] = useState('確定');
   const [cancelLabel, setCancelLabel] = useState('取消');
-  const [resolvePromise, setResolvePromise] = useState<((value: any) => void) | null>(null);
+  const [resolvePromise, setResolvePromise] = useState<((value: void | boolean) => void) | null>(null);
 
   const showAlert = useCallback((message: string, options?: DialogOptions) => {
     setMessage(message);

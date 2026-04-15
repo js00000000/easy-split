@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   collection,
   doc,
@@ -56,7 +57,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { alert, confirm } = useDialog();
+  const { confirm } = useDialog();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
   const [myGroups, setMyGroups] = useState<Group[]>([]);
@@ -166,7 +167,11 @@ export function GroupProvider({ children }: { children: ReactNode }) {
       });
       await setDoc(doc(db, 'users', user.uid), { lastGroupId: gid, joinedGroupIds: arrayUnion(gid) }, { merge: true });
       navigate(`/group/${gid}`);
-    } catch (error) { console.error("Create group error:", error); setIsLoading(false); }
+    } catch (error) { 
+      console.error("Create group error:", error); 
+      toast.error("建立群組失敗");
+      setIsLoading(false); 
+    }
   };
 
   const handleJoinGroup = async (id: string) => {
@@ -178,10 +183,14 @@ export function GroupProvider({ children }: { children: ReactNode }) {
         await setDoc(doc(db, 'users', user.uid), { lastGroupId: gid, joinedGroupIds: arrayUnion(gid) }, { merge: true });
         navigate(`/group/${gid}`);
       } else { 
-        await alert("找不到此群組 ID，請確認後再試。"); 
+        toast.error("找不到此群組 ID，請確認後再試。"); 
         setIsLoading(false); 
       }
-    } catch (error) { console.error("Join group error:", error); setIsLoading(false); }
+    } catch (error) { 
+      console.error("Join group error:", error); 
+      toast.error("加入群組失敗");
+      setIsLoading(false); 
+    }
   };
 
   const handleLeaveGroup = async () => {
@@ -220,7 +229,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     if (!user || !groupId) return;
     const member = members.find(m => m.id === memberId);
     if (member && member.userId && member.userId !== user.uid) { 
-      await alert("此成員已被其他使用者綁定。"); 
+      toast.error("此成員已被其他使用者綁定。"); 
       return; 
     }
     await updateDoc(doc(db, 'groups', groupId, 'members', memberId), { userId: user.uid, updatedAt: serverTimestamp() });
@@ -249,7 +258,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const handleUpdateProfile = async (data: Partial<Member>) => {
     if (!user || !groupId || !currentMemberId) return;
     await updateDoc(doc(db, 'groups', groupId, 'members', currentMemberId), { ...data, updatedAt: serverTimestamp() });
-    await alert('個人設定已更新');
+    toast.success('個人設定已更新');
   };
 
   const handleUpdateGroupName = async (newName: string) => {

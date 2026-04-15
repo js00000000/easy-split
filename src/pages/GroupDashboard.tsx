@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react';
-import { 
+import {
   Receipt, Copy, User as LucideUser, LogOut, Plus, Share2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import type { Expense } from '../types';
 import { BalancesView } from '../components/BalancesView';
 import { ExpensesList } from '../components/ExpensesList';
 import { ExpenseModal } from '../components/ExpenseModal';
 import { ProfileModal } from '../components/ProfileModal';
 import { useGroup } from '../contexts/GroupContext';
-import { useDialog } from '../contexts/DialogContext';
 
 export function GroupDashboard() {
   const navigate = useNavigate();
@@ -26,8 +26,7 @@ export function GroupDashboard() {
     handleUpdateExpense,
     handleDeleteExpense,
   } = useGroup();
-  const { alert } = useDialog();
-  
+
   // Internal UI State
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
@@ -63,19 +62,19 @@ export function GroupDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={async () => {
+                onClick={() => {
                   navigator.clipboard.writeText(groupId);
-                  await alert('已複製群組 ID');
+                  toast.success('已複製群組 ID');
                 }}
                 className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5"
               >
                 ID: {groupId.slice(0, 8)}... <Copy className="w-2 h-2" />
               </button>
               <button
-                onClick={async () => {
+                onClick={() => {
                   const url = `${window.location.origin}/join/${groupId}`;
                   navigator.clipboard.writeText(url);
-                  await alert('已複製分享連結');
+                  toast.success('已複製分享連結');
                 }}
                 className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5 border-l border-gray-200 pl-2"
               >
@@ -107,7 +106,10 @@ export function GroupDashboard() {
           expenses={filteredExpenses}
           members={members}
           onEdit={openEditModal}
-          onDelete={handleDeleteExpense}
+          onDelete={async (id) => {
+            await handleDeleteExpense(id);
+            toast.success('支出已刪除')
+          }}
           filterPaidBy={filterPaidBy}
           onFilterChange={setFilterPaidBy}
         />
@@ -134,8 +136,10 @@ export function GroupDashboard() {
           onSave={async (data, id) => {
             if (id) {
               await handleUpdateExpense(id, data);
+              toast.success('支出已更新');
             } else {
               await handleAddExpense(data);
+              toast.success('支出已新增');
             }
             setIsExpenseModalOpen(false);
             setExpenseToEdit(null);

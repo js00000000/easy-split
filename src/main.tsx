@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
@@ -10,6 +11,7 @@ import { DialogProvider } from './contexts/DialogContext'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <Toaster position="top-center" reverseOrder={false} />
       <DialogProvider>
         <AuthProvider>
           <GroupProvider>

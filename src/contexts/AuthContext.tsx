@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import toast from 'react-hot-toast';
 import {
   onAuthStateChanged,
   signInAnonymously,
@@ -98,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Google login error:", error);
+      toast.error("Google 登入失敗");
       setAuthError(error.message || "Failed to sign in with Google.");
       setAuthLoading(false);
     }
@@ -110,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Guest login error:", error);
+      toast.error("訪客登入失敗");
       setAuthError(error.message || "Failed to sign in as guest.");
       setAuthLoading(false);
     }
@@ -195,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Confirm abandon error:", error);
+      toast.error("切換帳號失敗");
       setAuthError(error.message || "Failed to switch account.");
     } finally {
       setAuthLoading(false);
@@ -205,9 +209,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut(auth);
       setUser(null);
+      toast.success("已登出");
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Logout error:", error);
+      toast.error("登出失敗");
     }
   };
 

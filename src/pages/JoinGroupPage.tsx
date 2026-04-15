@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useGroup } from '../contexts/GroupContext';
 import { LoadingView } from '../components/LoadingView';
@@ -24,6 +25,7 @@ export function JoinGroupPage() {
           await handleJoinGroup(groupId);
         } catch (err) {
           console.error("Auto-join error:", err);
+          toast.error("加入群組失敗，請確認連結是否正確。");
           setError("加入群組失敗，請確認連結是否正確。");
           setIsJoining(false);
         }
