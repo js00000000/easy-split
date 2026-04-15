@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   collection,
   doc,
@@ -22,6 +22,8 @@ import { db } from '../lib/firebase';
 import type { Member, Group, Expense, UserSettings } from '../types';
 import { useAuth } from './AuthContext';
 
+type ExpenseInput = Omit<Expense, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>;
+
 interface GroupContextType {
   groupId: string | null;
   currentGroup: Group | null;
@@ -42,8 +44,8 @@ interface GroupContextType {
   handleUpdateProfile: (data: Partial<Member>) => Promise<void>;
   handleUpdateGroupName: (newName: string) => Promise<void>;
   handleDeleteAllExpenses: () => Promise<void>;
-  handleAddExpense: (expenseData: any) => Promise<void>;
-  handleUpdateExpense: (expenseId: string, expenseData: any) => Promise<void>;
+  handleAddExpense: (expenseData: ExpenseInput) => Promise<void>;
+  handleUpdateExpense: (expenseId: string, expenseData: Partial<ExpenseInput>) => Promise<void>;
   handleDeleteExpense: (expense: Expense) => Promise<void>;
 }
 
@@ -52,6 +54,7 @@ const GroupContext = createContext<GroupContextType | undefined>(undefined);
 export function GroupProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
   const [myGroups, setMyGroups] = useState<Group[]>([]);
@@ -62,13 +65,13 @@ export function GroupProvider({ children }: { children: ReactNode }) {
 
   // Sync state with URL
   useEffect(() => {
-    const pathParts = window.location.pathname.split('/');
+    const pathParts = location.pathname.split('/');
     const idFromUrl = (pathParts[1] === 'group' && pathParts[2]) ? pathParts[2] : null;
     
     if (idFromUrl !== groupId) {
       setGroupId(idFromUrl);
     }
-  });
+  }, [location.pathname, groupId]);
 
   // User Settings Hook
   useEffect(() => {
@@ -243,12 +246,12 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     for (const exp of expenses) await deleteDoc(doc(db, 'groups', groupId, 'expenses', exp.id));
   };
 
-  const handleAddExpense = async (expenseData: any) => {
+  const handleAddExpense = async (expenseData: ExpenseInput) => {
     if (!user || !groupId || !currentMemberId) return;
     await addDoc(collection(db, 'groups', groupId, 'expenses'), { ...expenseData, createdBy: currentMemberId, createdAt: serverTimestamp() });
   };
 
-  const handleUpdateExpense = async (expenseId: string, expenseData: any) => {
+  const handleUpdateExpense = async (expenseId: string, expenseData: Partial<ExpenseInput>) => {
     if (!user || !groupId) return;
     await updateDoc(doc(db, 'groups', groupId, 'expenses', expenseId), { ...expenseData, updatedAt: serverTimestamp() });
   };
@@ -275,6 +278,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGroup() {
   const context = useContext(GroupContext);
   if (context === undefined) {

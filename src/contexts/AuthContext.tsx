@@ -11,7 +11,7 @@ import {
   signOut,
   deleteUser,
 } from 'firebase/auth';
-import type { User } from 'firebase/auth';
+import type { User, AuthError } from 'firebase/auth';
 import { 
   doc, 
   getDoc, 
@@ -45,14 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Handle redirect result (for cases where popup was blocked)
-    getRedirectResult(auth).catch((error) => {
+    getRedirectResult(auth).catch((error: unknown) => {
       console.error("Redirect error catch:", error);
-      if (error.code === 'auth/credential-already-in-use') {
+      const authErr = error as AuthError;
+      if (authErr.code === 'auth/credential-already-in-use') {
         // If they tried to link a Google account that already exists via redirect, 
         // we show the confirmation instead of auto-signing in
         setShowAbandonGuestConfirm(true);
       } else {
-        setAuthError(error.message);
+        setAuthError(authErr.message || "An error occurred during redirect.");
       }
     });
 
@@ -70,7 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (auth.currentUser && auth.currentUser.isAnonymous) {
         try {
           await linkWithPopup(auth.currentUser, googleProvider);
-        } catch (error: any) {
+        } catch (err: unknown) {
+          const error = err as AuthError;
           if (error.code === 'auth/popup-blocked') {
             await linkWithRedirect(auth.currentUser, googleProvider);
           } else if (error.code === 'auth/credential-already-in-use') {
@@ -84,7 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         try {
           await signInWithPopup(auth, googleProvider);
-        } catch (error: any) {
+        } catch (err: unknown) {
+          const error = err as AuthError;
           if (error.code === 'auth/popup-blocked') {
             await signInWithRedirect(auth, googleProvider);
           } else {
@@ -92,9 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as AuthError;
       console.error("Google login error:", error);
-      setAuthError(error.message);
+      setAuthError(error.message || "Failed to sign in with Google.");
       setAuthLoading(false);
     }
   };
@@ -103,9 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setAuthLoading(true);
       await signInAnonymously(auth);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as AuthError;
       console.error("Guest login error:", error);
-      setAuthError(error.message);
+      setAuthError(error.message || "Failed to sign in as guest.");
       setAuthLoading(false);
     }
   };
@@ -179,16 +184,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 6. Sign in with Google
       try {
         await signInWithPopup(auth, googleProvider);
-      } catch (popupError: any) {
+      } catch (err: unknown) {
+        const popupError = err as AuthError;
         if (popupError.code === 'auth/popup-blocked') {
           await signInWithRedirect(auth, googleProvider);
         } else {
           throw popupError;
         }
       }
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as AuthError;
       console.error("Confirm abandon error:", error);
-      setAuthError(error.message);
+      setAuthError(error.message || "Failed to switch account.");
     } finally {
       setAuthLoading(false);
     }
@@ -198,7 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut(auth);
       setUser(null);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as AuthError;
       console.error("Logout error:", error);
     }
   };
@@ -216,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -223,3 +232,4 @@ export function useAuth() {
   }
   return context;
 }
+
