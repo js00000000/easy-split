@@ -13,6 +13,7 @@ interface MemberManagementViewProps {
   onDeleteAllExpenses: () => void;
   onUpdateGroupName: (name: string) => void;
   onDeleteGroup: () => void;
+  onCreateMember: (name: string) => void;
 }
 
 export function MemberManagementView({
@@ -24,9 +25,11 @@ export function MemberManagementView({
   onDeleteMember,
   onDeleteAllExpenses,
   onUpdateGroupName,
-  onDeleteGroup
+  onDeleteGroup,
+  onCreateMember
 }: MemberManagementViewProps) {
   const [newName, setNewName] = useState(currentGroup?.name || '');
+  const [newMemberName, setNewMemberName] = useState('');
   const { balances } = useMemo(() => calculateBalancesAndSettlements(members, expenses), [members, expenses]);
 
   const handleSaveGroupName = () => {
@@ -50,6 +53,13 @@ export function MemberManagementView({
   const handleDeleteAll = () => {
     if (window.confirm('確定要刪除「所有」支出紀錄嗎？此操作不可復原。')) {
       onDeleteAllExpenses();
+    }
+  };
+
+  const handleAddMember = () => {
+    if (newMemberName.trim()) {
+      onCreateMember(newMemberName.trim());
+      setNewMemberName('');
     }
   };
 
@@ -118,6 +128,29 @@ export function MemberManagementView({
               );
             })}
           </div>
+
+          {currentMember.isHost && (
+            <div className="bg-white rounded-2xl border shadow-sm p-4 mt-2">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="新增成員姓名"
+                  value={newMemberName} 
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddMember()}
+                  className="flex-1 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
+                />
+                <button 
+                  onClick={handleAddMember}
+                  disabled={!newMemberName.trim()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  新增
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="space-y-4 pt-4 border-t">

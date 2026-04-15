@@ -37,6 +37,7 @@ interface GroupContextType {
   handleDeleteGroup: () => Promise<void>;
   handleSelectMember: (memberId: string) => Promise<void>;
   handleCreateMember: (name: string) => Promise<void>;
+  handleCreateMemberByHost: (name: string) => Promise<void>;
   handleDeleteMember: (memberId: string) => Promise<void>;
   handleUpdateProfile: (data: Partial<Member>) => Promise<void>;
   handleUpdateGroupName: (newName: string) => Promise<void>;
@@ -212,6 +213,16 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     await addDoc(collection(db, 'groups', groupId, 'members'), { name: name.trim(), userId: user.uid, createdAt: serverTimestamp() });
   };
 
+  const handleCreateMemberByHost = async (name: string) => {
+    if (!user || !groupId || !name.trim()) return;
+    // By host, we don't bind a userId so anyone can claim it later
+    await addDoc(collection(db, 'groups', groupId, 'members'), { 
+      name: name.trim(), 
+      userId: null, 
+      createdAt: serverTimestamp() 
+    });
+  };
+
   const handleDeleteMember = async (memberId: string) => {
     if (!user || !groupId) return;
     await deleteDoc(doc(db, 'groups', groupId, 'members', memberId));
@@ -253,7 +264,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     groupId, currentGroup, myGroups, members, expenses, currentMemberId, currentMember,
     isLoading, 
     handleCreateGroup, handleJoinGroup, handleLeaveGroup, handleDeleteGroup,
-    handleSelectMember, handleCreateMember, handleDeleteMember, handleUpdateProfile,
+    handleSelectMember, handleCreateMember, handleCreateMemberByHost, handleDeleteMember, handleUpdateProfile,
     handleUpdateGroupName, handleDeleteAllExpenses, handleAddExpense, handleUpdateExpense, handleDeleteExpense
   };
 

@@ -7,7 +7,8 @@ export function MemberManagementPage() {
   const { groupId } = useParams();
   const { 
     members, expenses, currentMember, currentGroup, 
-    handleDeleteMember, handleDeleteAllExpenses, handleUpdateGroupName, handleDeleteGroup 
+    handleDeleteMember, handleDeleteAllExpenses, handleUpdateGroupName, handleDeleteGroup,
+    handleCreateMemberByHost
   } = useGroup();
 
   if (!currentMember) return null;
@@ -23,6 +24,7 @@ export function MemberManagementPage() {
       onDeleteAllExpenses={handleDeleteAllExpenses}
       onUpdateGroupName={handleUpdateGroupName}
       onDeleteGroup={handleDeleteGroup}
+      onCreateMember={handleCreateMemberByHost}
     />
   );
 }
