@@ -9,9 +9,22 @@ import {
   linkWithRedirect,
   getRedirectResult,
   signOut,
+  deleteUser,
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { 
+  doc, 
+  getDoc, 
+  deleteDoc, 
+  collection, 
+  getDocs, 
+  query, 
+  where, 
+  updateDoc 
+} from 'firebase/firestore';
+import { auth, googleProvider, db } from '../lib/firebase';
+import { AbandonGuestConfirmationModal } from '../components/MergeConfirmationModal';
+import type { UserSettings } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -27,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showAbandonGuestConfirm, setShowAbandonGuestConfirm] = useState(false);
 
   useEffect(() => {
     // Handle redirect result (for cases where popup was blocked)
@@ -34,8 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Redirect error catch:", error);
       if (error.code === 'auth/credential-already-in-use') {
         // If they tried to link a Google account that already exists via redirect, 
-        // fallback to normal sign-in via redirect
-        signInWithRedirect(auth, googleProvider);
+        // we show the confirmation instead of auto-signing in
+        setShowAbandonGuestConfirm(true);
       } else {
         setAuthError(error.message);
       }
@@ -67,16 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (error.code === 'auth/popup-blocked') {
             await linkWithRedirect(auth.currentUser, googleProvider);
           } else if (error.code === 'auth/credential-already-in-use') {
-            // Google account already exists, try to sign in normally
-            try {
-              await signInWithPopup(auth, googleProvider);
-            } catch (popupError: any) {
-              if (popupError.code === 'auth/popup-blocked') {
-                await signInWithRedirect(auth, googleProvider);
-              } else {
-                throw popupError;
-              }
-            }
+            // Google account already exists, show confirmation before switching
+            setShowAbandonGuestConfirm(true);
+            setAuthLoading(false);
           } else {
             throw error;
           }
@@ -99,6 +106,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const confirmAbandon = async () => {
+    try {
+      setAuthLoading(true);
+      setShowAbandonGuestConfirm(false);
+      
+      const guestUser = auth.currentUser;
+      if (guestUser && guestUser.isAnonymous) {
+        const guestUid = guestUser.uid;
+        
+        // 1. Find all groups created by this guest user
+        const createdGroupsQuery = query(collection(db, 'groups'), where('createdBy', '==', guestUid));
+        const createdGroupsSnap = await getDocs(createdGroupsQuery);
+        const deletedGroupIds = new Set<string>();
+
+        for (const groupDoc of createdGroupsSnap.docs) {
+          const gid = groupDoc.id;
+          try {
+            // Delete all expenses in the group
+            const expensesSnap = await getDocs(collection(db, 'groups', gid, 'expenses'));
+            for (const expDoc of expensesSnap.docs) {
+              await deleteDoc(expDoc.ref);
+            }
+            // Delete all members in the group
+            const membersSnap = await getDocs(collection(db, 'groups', gid, 'members'));
+            for (const memberDoc of membersSnap.docs) {
+              await deleteDoc(memberDoc.ref);
+            }
+            // Finally delete the group document
+            await deleteDoc(groupDoc.ref);
+            deletedGroupIds.add(gid);
+          } catch (err) {
+            console.error(`Error deleting group ${gid} and its data:`, err);
+          }
+        }
+
+        // 2. Get user settings to find other joined groups
+        const userDoc = await getDoc(doc(db, 'users', guestUid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as UserSettings;
+          const joinedGroupIds = userData.joinedGroupIds || [];
+          
+          // 3. Clear userId from members in other groups the user joined but didn't create
+          for (const gid of joinedGroupIds) {
+            if (deletedGroupIds.has(gid)) continue;
+            
+            try {
+              const membersRef = collection(db, 'groups', gid, 'members');
+              const membersSnap = await getDocs(query(membersRef, where('userId', '==', guestUid)));
+              for (const memberDoc of membersSnap.docs) {
+                await updateDoc(memberDoc.ref, { userId: null });
+              }
+            } catch (err) {
+              console.error(`Error clearing userId in group ${gid}:`, err);
+            }
+          }
+          
+          // 4. Delete user document
+          await deleteDoc(doc(db, 'users', guestUid));
+        }
+        
+        // 5. Delete the guest user from Auth
+        await deleteUser(guestUser).catch(err => {
+          console.error("Error deleting guest user from Auth:", err);
+        });
+      }
+
+      // 6. Sign in with Google
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (popupError: any) {
+        if (popupError.code === 'auth/popup-blocked') {
+          await signInWithRedirect(auth, googleProvider);
+        } else {
+          throw popupError;
+        }
+      }
+    } catch (error: any) {
+      console.error("Confirm abandon error:", error);
+      setAuthError(error.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -111,6 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, authLoading, authError, handleGoogleLogin, handleLogout }}>
       {children}
+      {showAbandonGuestConfirm && (
+        <AbandonGuestConfirmationModal
+          onClose={() => setShowAbandonGuestConfirm(false)}
+          onConfirm={confirmAbandon}
+        />
+      )}
     </AuthContext.Provider>
   );
 }
