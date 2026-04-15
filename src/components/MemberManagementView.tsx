@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Users, Shield, X, Plus, Copy, Trash2, DollarSign } from 'lucide-react';
+import { ArrowLeft, Users, Shield, X, Plus, Copy, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Member, Group, Expense } from '../types';
 import { calculateBalancesAndSettlements } from '../lib/settlement';
@@ -12,7 +12,6 @@ interface MemberManagementViewProps {
   currentGroup: Group | null;
   onBack: () => void;
   onDeleteMember: (id: string) => void;
-  onDeleteAllExpenses: () => void;
   onUpdateGroupName: (name: string) => void;
   onDeleteGroup: () => void;
   onCreateMember: (name: string) => void;
@@ -25,7 +24,6 @@ export function MemberManagementView({
   currentGroup,
   onBack,
   onDeleteMember,
-  onDeleteAllExpenses,
   onUpdateGroupName,
   onDeleteGroup,
   onCreateMember
@@ -52,13 +50,6 @@ export function MemberManagementView({
     if (isConfirmed) {
       onDeleteMember(member.id);
       toast.success('成員已刪除');
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    const isConfirmed = await confirm('確定要刪除「所有」支出紀錄嗎？此操作不可復原。');
-    if (isConfirmed) {
-      onDeleteAllExpenses();
     }
   };
 
@@ -201,19 +192,6 @@ export function MemberManagementView({
                 </button>
               </div>
             </div>
-
-            {currentMember.isHost && (
-              <div className="pt-4 mt-2 border-t flex items-center justify-between">
-                <span className="text-sm text-red-600 font-medium">刪除此群組</span>
-                <button
-                  onClick={onDeleteGroup}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-xs font-medium transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  刪除
-                </button>
-              </div>
-            )}
           </div>
         </section>
 
@@ -224,13 +202,13 @@ export function MemberManagementView({
             </h2>
             <div className="bg-white rounded-2xl border border-red-100 p-6 space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">刪除所有支出紀錄</h3>
-                <p className="text-xs text-gray-500 mt-1">此操作將永久清除群組內的所有帳務資料，不可復原。</p>
+                <h3 className="text-sm font-semibold text-gray-900 text-red-600">刪除此群組</h3>
+                <p className="text-xs text-gray-500 mt-1">此操作將永久刪除群組「{currentGroup?.name}」及所有成員與支出紀錄，不可復原。</p>
               </div>
-              <button type="button" onClick={handleDeleteAll}
+              <button type="button" onClick={onDeleteGroup}
                 className="w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                立即刪除所有紀錄
+                <Trash2 className="w-4 h-4" />
+                立即刪除此群組
               </button>
             </div>
           </section>
