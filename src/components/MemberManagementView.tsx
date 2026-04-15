@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowLeft, Users, Shield, X, Plus, Copy, Trash2, DollarSign } from 'lucide-react';
 import type { Member, Group, Expense } from '../types';
 import { calculateBalancesAndSettlements } from '../lib/settlement';
+import { useDialog } from '../contexts/DialogContext';
 
 interface MemberManagementViewProps {
   members: Member[];
@@ -28,30 +29,33 @@ export function MemberManagementView({
   onDeleteGroup,
   onCreateMember
 }: MemberManagementViewProps) {
+  const { alert, confirm } = useDialog();
   const [newName, setNewName] = useState(currentGroup?.name || '');
   const [newMemberName, setNewMemberName] = useState('');
   const { balances } = useMemo(() => calculateBalancesAndSettlements(members, expenses), [members, expenses]);
 
-  const handleSaveGroupName = () => {
+  const handleSaveGroupName = async () => {
     if (newName.trim() && newName !== currentGroup?.name) {
       onUpdateGroupName(newName);
-      alert('群組名稱已更新');
+      await alert('群組名稱已更新');
     }
   };
 
-  const handleDeleteMemberByHost = (member: Member) => {
+  const handleDeleteMemberByHost = async (member: Member) => {
     const balance = balances[member.id] || 0;
     if (Math.abs(balance) > 0.01) {
-      alert(`無法刪除成員「${member.name}」，因為該成員還有未結清的款項 (${balance > 0 ? '需收回' : '需支付'} $${Math.abs(balance).toFixed(0)})。`);
+      await alert(`無法刪除成員「${member.name}」，因為該成員還有未結清的款項 (${balance > 0 ? '需收回' : '需支付'} $${Math.abs(balance).toFixed(0)})。`);
       return;
     }
-    if (window.confirm(`確定要刪除成員「${member.name}」嗎？此操作不可復原。`)) {
+    const isConfirmed = await confirm(`確定要刪除成員「${member.name}」嗎？此操作不可復原。`);
+    if (isConfirmed) {
       onDeleteMember(member.id);
     }
   };
 
-  const handleDeleteAll = () => {
-    if (window.confirm('確定要刪除「所有」支出紀錄嗎？此操作不可復原。')) {
+  const handleDeleteAll = async () => {
+    const isConfirmed = await confirm('確定要刪除「所有」支出紀錄嗎？此操作不可復原。');
+    if (isConfirmed) {
       onDeleteAllExpenses();
     }
   };
@@ -185,9 +189,9 @@ export function MemberManagementView({
               <div className="flex items-center gap-2">
                 <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{currentGroup?.id}</code>
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     navigator.clipboard.writeText(currentGroup?.id || '');
-                    alert('已複製群組 ID');
+                    await alert('已複製群組 ID');
                   }}
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
                 >

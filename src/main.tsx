@@ -5,15 +5,18 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 import { GroupProvider } from './contexts/GroupContext'
+import { DialogProvider } from './contexts/DialogContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <GroupProvider>
-          <App />
-        </GroupProvider>
-      </AuthProvider>
+      <DialogProvider>
+        <AuthProvider>
+          <GroupProvider>
+            <App />
+          </GroupProvider>
+        </AuthProvider>
+      </DialogProvider>
     </BrowserRouter>
   </StrictMode>,
 )

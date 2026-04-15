@@ -9,6 +9,7 @@ import { ExpensesList } from '../components/ExpensesList';
 import { ExpenseModal } from '../components/ExpenseModal';
 import { ProfileModal } from '../components/ProfileModal';
 import { useGroup } from '../contexts/GroupContext';
+import { useDialog } from '../contexts/DialogContext';
 
 export function GroupDashboard() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export function GroupDashboard() {
     handleUpdateExpense,
     handleDeleteExpense,
   } = useGroup();
+  const { alert } = useDialog();
   
   // Internal UI State
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -61,19 +63,19 @@ export function GroupDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
+                onClick={async () => {
                   navigator.clipboard.writeText(groupId);
-                  alert('已複製群組 ID');
+                  await alert('已複製群組 ID');
                 }}
                 className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5"
               >
                 ID: {groupId.slice(0, 8)}... <Copy className="w-2 h-2" />
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const url = `${window.location.origin}/join/${groupId}`;
                   navigator.clipboard.writeText(url);
-                  alert('已複製分享連結');
+                  await alert('已複製分享連結');
                 }}
                 className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5 border-l border-gray-200 pl-2"
               >

@@ -21,6 +21,7 @@ import {
 import { db } from '../lib/firebase';
 import type { Member, Group, Expense, UserSettings } from '../types';
 import { useAuth } from './AuthContext';
+import { useDialog } from './DialogContext';
 
 type ExpenseInput = Omit<Expense, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>;
 
@@ -55,6 +56,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { alert, confirm } = useDialog();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
   const [myGroups, setMyGroups] = useState<Group[]>([]);
@@ -175,7 +177,10 @@ export function GroupProvider({ children }: { children: ReactNode }) {
       if ((await getDoc(doc(db, 'groups', gid))).exists()) {
         await setDoc(doc(db, 'users', user.uid), { lastGroupId: gid, joinedGroupIds: arrayUnion(gid) }, { merge: true });
         navigate(`/group/${gid}`);
-      } else { alert("找不到此群組 ID，請確認後再試。"); setIsLoading(false); }
+      } else { 
+        await alert("找不到此群組 ID，請確認後再試。"); 
+        setIsLoading(false); 
+      }
     } catch (error) { console.error("Join group error:", error); setIsLoading(false); }
   };
 
@@ -192,7 +197,14 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     if (!user || !groupId || !currentMemberId) return;
     const currentMember = members.find(m => m.id === currentMemberId);
     if (!currentMember?.isHost) return;
-    if (window.confirm(`確定要永久刪除群組「${currentGroup?.name}」嗎？`)) {
+    
+    const isConfirmed = await confirm(`確定要永久刪除群組「${currentGroup?.name}」嗎？`, {
+      title: '刪除群組',
+      confirmLabel: '確定刪除',
+      cancelLabel: '取消'
+    });
+
+    if (isConfirmed) {
       setIsLoading(true);
       try {
         for (const exp of expenses) await deleteDoc(doc(db, 'groups', groupId, 'expenses', exp.id));
@@ -207,7 +219,10 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const handleSelectMember = async (memberId: string) => {
     if (!user || !groupId) return;
     const member = members.find(m => m.id === memberId);
-    if (member && member.userId && member.userId !== user.uid) { alert("此成員已被其他使用者綁定。"); return; }
+    if (member && member.userId && member.userId !== user.uid) { 
+      await alert("此成員已被其他使用者綁定。"); 
+      return; 
+    }
     await updateDoc(doc(db, 'groups', groupId, 'members', memberId), { userId: user.uid, updatedAt: serverTimestamp() });
   };
 
@@ -258,7 +273,8 @@ export function GroupProvider({ children }: { children: ReactNode }) {
 
   const handleDeleteExpense = async (expense: Expense) => {
     if (!user || !groupId) return;
-    if (window.confirm('確定要刪除這筆支出紀錄嗎？')) await deleteDoc(doc(db, 'groups', groupId, 'expenses', expense.id));
+    const isConfirmed = await confirm('確定要刪除這筆支出紀錄嗎？');
+    if (isConfirmed) await deleteDoc(doc(db, 'groups', groupId, 'expenses', expense.id));
   };
 
   const currentMember = members.find(m => m.id === currentMemberId);
