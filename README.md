@@ -9,20 +9,29 @@ A modern, mobile-friendly group expense splitting application built with React, 
 ## Key Features
 
 - 🚀 **Multi-Group Architecture**: Create, join, and manage multiple splitting groups simultaneously.
-- 🔐 **Authentication**: Support for both Anonymous sign-in and Google Authentication for persistent data across devices.
-- 🔗 **Direct Group Linking**: Share group IDs or URLs for instant access to specific group dashboards.
-- 📊 **Real-time Balances**: Live calculation of who owes whom, optimized for equal splits.
-- 🛡️ **Host Management**: Dedicated group hosts can manage members, rename groups, or clear all records.
-- 📱 **Mobile First**: Fully responsive design with a clean, intuitive UI built with Tailwind CSS.
-- 🔄 **State Persistence**: Remembers your last visited group and syncs joined groups to your user profile.
+- 🔐 **Authentication & Data Integrity**: 
+  - Support for **Anonymous Guest sign-in** and **Google Authentication**.
+  - Safe migration path for guest users to Google accounts, with built-in protection against accidental data overwrites.
+- 👥 **Smart Member Binding**: Bind your user account to a specific group member to track your own balances and expenses easily.
+- 📊 **Optimized Settlement**: 
+  - Uses a **Greedy Algorithm** to minimize the total number of reimbursement transactions.
+  - Real-time balance calculations for all members.
+- 💰 **One-Click Reimbursement**: 
+  - Members can provide **Bank Code and Account** details in their profile.
+  - Debtors can copy the receiver's bank account with one click directly from the settlement view.
+- 🛡️ **Host Management**: Dedicated group hosts can manage members, update group settings, or clear records.
+- 📱 **Mobile First UI**: Fully responsive design with a clean, intuitive interface built with Tailwind CSS 4 and Lucide Icons.
+- 🔄 **State Persistence**: Remembers your last visited group and syncs joined groups across your user profile.
 
 ## Tech Stack
 
-- **Frontend**: React 19, TypeScript, Vite
-- **Routing**: React Router 7
+- **Frontend**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite 8](https://vitejs.dev/)
+- **Routing**: [React Router 7](https://reactrouter.com/)
 - **State Management**: React Context API
-- **Backend**: Firebase (Firestore & Auth)
-- **Styling**: Tailwind CSS 4, Lucide Icons
+- **Backend**: [Firebase 12](https://firebase.google.com/) (Firestore, Auth & Analytics)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/)
+- **Notifications**: [React Hot Toast](https://react-hot-toast.com/)
+- **Testing**: [Vitest](https://vitest.dev/)
 
 ## Firebase Setup
 
@@ -43,6 +52,7 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
 ## Development
@@ -54,9 +64,16 @@ npm install
 # Run development server
 npm run dev
 
+# Run tests
+npm test
+
 # Build for production
 npm run build
 
 # Preview production build
 npm run preview
 ```
+
+## License
+
+MIT
