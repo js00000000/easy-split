@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, LogOut, Clock, ArrowRight, Languages } from 'lucide-react';
+import { LogOut, Clock, ArrowRight, Languages, Receipt } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { APP_NAME } from '../constants';
 import type { User } from 'firebase/auth';
@@ -15,14 +15,14 @@ interface GroupSelectionViewProps {
   onSelectGroup: (id: string) => void;
 }
 
-export function GroupSelectionView({ 
-  user, 
-  myGroups, 
-  onGoogleLogin, 
-  onLogout, 
-  onCreateGroup, 
-  onJoinGroup, 
-  onSelectGroup 
+export function GroupSelectionView({
+  user,
+  myGroups,
+  onGoogleLogin,
+  onLogout,
+  onCreateGroup,
+  onJoinGroup,
+  onSelectGroup
 }: GroupSelectionViewProps) {
   const { t, i18n } = useTranslation();
   const [groupName, setGroupName] = useState('');
@@ -41,7 +41,7 @@ export function GroupSelectionView({
           <div className="flex flex-col items-center mb-4">
             <span className="text-xs font-black tracking-tighter uppercase text-indigo-400 leading-none mb-1">{APP_NAME}</span>
             <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6" />
+              <Receipt className="w-6 h-6" />
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{t('auth.login_title')}</h1>
@@ -84,8 +84,8 @@ export function GroupSelectionView({
                 </h2>
                 <div className="space-y-2">
                   {myGroups.map(g => (
-                    <button 
-                      key={g.id} 
+                    <button
+                      key={g.id}
                       onClick={() => onSelectGroup(g.id)}
                       className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-indigo-600 hover:bg-indigo-50 transition-all group"
                     >
@@ -112,14 +112,14 @@ export function GroupSelectionView({
             <div className="space-y-2">
               <h2 className="text-sm font-bold text-gray-700">{t('groups.create_new')}</h2>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={groupName} 
+                <input
+                  type="text"
+                  value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder={t('groups.enter_name')}
                   className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
                 />
-                <button 
+                <button
                   onClick={() => onCreateGroup(groupName)}
                   disabled={!groupName.trim()}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap"
@@ -132,14 +132,14 @@ export function GroupSelectionView({
             <div className="space-y-2 pt-2">
               <h2 className="text-sm font-bold text-gray-700">{t('groups.join_existing')}</h2>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={groupIdToJoin} 
+                <input
+                  type="text"
+                  value={groupIdToJoin}
                   onChange={(e) => setGroupIdToJoin(e.target.value)}
                   placeholder={t('groups.enter_id')}
                   className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm font-mono"
                 />
-                <button 
+                <button
                   onClick={() => onJoinGroup(groupIdToJoin)}
                   disabled={!groupIdToJoin.trim()}
                   className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-50 transition-colors text-sm whitespace-nowrap"
