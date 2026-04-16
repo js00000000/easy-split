@@ -46,27 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Handle redirect result (for cases where popup was blocked)
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          // Successfully signed in or linked via redirect
-          // onAuthStateChanged will handle setting the user
-        }
-      } catch (error: unknown) {
-        console.error("Redirect error catch:", error);
-        const authErr = error as AuthError;
-        if (authErr.code === 'auth/credential-already-in-use') {
-          // If they tried to link a Google account that already exists via redirect, 
-          // we show the confirmation instead of auto-signing in
-          setShowAbandonGuestConfirm(true);
-        } else {
-          toast.error(authErr.message || "An error occurred during redirect.");
-        }
+    getRedirectResult(auth).catch((error: unknown) => {
+      console.error("Redirect error catch:", error);
+      const authErr = error as AuthError;
+      if (authErr.code === 'auth/credential-already-in-use') {
+        // If they tried to link a Google account that already exists via redirect, 
+        // we show the confirmation instead of auto-signing in
+        setShowAbandonGuestConfirm(true);
+      } else {
+        toast.error(authErr.message || "An error occurred during redirect.");
       }
-    };
-
-    handleRedirect();
+    });
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
