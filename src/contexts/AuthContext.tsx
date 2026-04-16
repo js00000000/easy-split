@@ -6,9 +6,7 @@ import toast from 'react-hot-toast';
 import {
   onAuthStateChanged,
   signInAnonymously,
-  signInWithPopup,
   signInWithRedirect,
-  linkWithPopup,
   linkWithRedirect,
   getRedirectResult,
   signOut,
@@ -71,31 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setAuthLoading(true);
       if (auth.currentUser && auth.currentUser.isAnonymous) {
-        try {
-          await linkWithPopup(auth.currentUser, googleProvider);
-        } catch (err: unknown) {
-          const error = err as AuthError;
-          if (error.code === 'auth/popup-blocked') {
-            await linkWithRedirect(auth.currentUser, googleProvider);
-          } else if (error.code === 'auth/credential-already-in-use') {
-            // Google account already exists, show confirmation before switching
-            setShowAbandonGuestConfirm(true);
-            setAuthLoading(false);
-          } else {
-            throw error;
-          }
-        }
+        await linkWithRedirect(auth.currentUser, googleProvider);
       } else {
-        try {
-          await signInWithPopup(auth, googleProvider);
-        } catch (err: unknown) {
-          const error = err as AuthError;
-          if (error.code === 'auth/popup-blocked') {
-            await signInWithRedirect(auth, googleProvider);
-          } else {
-            throw error;
-          }
-        }
+        await signInWithRedirect(auth, googleProvider);
       }
     } catch (err: unknown) {
       const error = err as AuthError;
@@ -184,21 +160,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // 6. Sign in with Google
-      try {
-        await signInWithPopup(auth, googleProvider);
-      } catch (err: unknown) {
-        const popupError = err as AuthError;
-        if (popupError.code === 'auth/popup-blocked') {
-          await signInWithRedirect(auth, googleProvider);
-        } else {
-          throw popupError;
-        }
-      }
+      await signInWithRedirect(auth, googleProvider);
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Confirm abandon error:", error);
       toast.error(error.message || "Failed to switch account.");
     } finally {
+      // Note: setAuthLoading(false) might not be reached if redirect happens, 
+      // which is fine as the page will reload anyway.
       setAuthLoading(false);
     }
   };
