@@ -37,8 +37,11 @@ export function GroupSelectionView({
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border p-6 space-y-8">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-6 h-6" />
+          <div className="flex flex-col items-center mb-4">
+            <span className="text-xs font-black tracking-tighter uppercase text-indigo-400 leading-none mb-1">Slice</span>
+            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+              <Users className="w-6 h-6" />
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{t('auth.login_title')}</h1>
           <p className="text-gray-500 text-sm">{t('groups.no_groups')}</p>

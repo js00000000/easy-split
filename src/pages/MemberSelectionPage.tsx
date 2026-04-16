@@ -20,8 +20,11 @@ export function MemberSelectionPage() {
             <button onClick={() => navigate('/')} className="text-gray-400 hover:text-indigo-600 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-              <Receipt className="w-5 h-5" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black tracking-tighter uppercase text-indigo-400 leading-none mb-1">Slice</span>
+              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+                <Receipt className="w-5 h-5" />
+              </div>
             </div>
           </div>
           <h1 className="text-xl font-bold text-gray-900">{currentGroup?.name}</h1>

@@ -27,7 +27,6 @@ export function JoinGroupPage() {
           await handleJoinGroup(groupId);
         } catch (err) {
           console.error("Auto-join error:", err);
-          const msg = t('groups.id_copied'); // fallback or custom error
           toast.error(t('common.error'));
           setError(t('common.error'));
           setIsJoining(false);
@@ -43,7 +42,7 @@ export function JoinGroupPage() {
         <div className="bg-white p-8 rounded-2xl shadow-sm border text-center space-y-4 max-w-sm w-full">
           <h2 className="text-xl font-bold text-red-600">{t('common.error')}</h2>
           <p className="text-gray-600">{error}</p>
-          <button 
+          <button
             onClick={() => navigate('/')}
             className="w-full py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
           >

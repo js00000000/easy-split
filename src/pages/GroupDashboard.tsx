@@ -70,8 +70,11 @@ export function GroupDashboard() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex flex-col">
             <div className="flex items-center gap-2 text-indigo-600">
-              <Receipt className="w-5 h-5" />
-              <h1 className="font-bold text-base leading-tight">{currentGroup?.name || '群組分帳'}</h1>
+              <div className="flex items-center gap-1.5">
+                <Receipt className="w-5 h-5" />
+                <span className="text-xs font-black tracking-tighter uppercase text-indigo-400">Slice</span>
+              </div>
+              <h1 className="font-bold text-base leading-tight border-l border-indigo-100 pl-2">{currentGroup?.name || '群組分帳'}</h1>
             </div>
             <div className="flex items-center gap-2">
               <button

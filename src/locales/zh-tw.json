@@ -17,7 +17,7 @@
     "seo_description": "Slice 是一款專為群組設計的簡單分帳工具。支援匿名登入、Google 登入，輕鬆追蹤支出、計算結清金額。適合朋友聚餐、出遊、室友分帳。"
   },
   "auth": {
-    "login_title": "群組分帳",
+    "login_title": "Slice",
     "login_subtitle": "快速、簡單的群組分帳工具",
     "google_login": "Google 帳號登入",
     "guest_login": "訪客登入",

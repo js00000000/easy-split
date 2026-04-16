@@ -18,8 +18,11 @@ export function LoginView({ onGoogleLogin, onGuestLogin }: LoginViewProps) {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 space-y-8 animate-in fade-in zoom-in duration-300">
         <div className="text-center space-y-3">
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg rotate-3">
-            <LogIn className="w-10 h-10" />
+          <div className="relative">
+            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-black tracking-widest uppercase text-indigo-400">Slice</span>
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg rotate-3">
+              <LogIn className="w-10 h-10" />
+            </div>
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t('auth.login_title')}</h1>
           <p className="text-gray-500 font-medium">{t('auth.login_subtitle')}</p>
