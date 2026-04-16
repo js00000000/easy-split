@@ -1,6 +1,6 @@
 {
-  "name": "EasySplit 群組分帳",
-  "short_name": "EasySplit",
+  "name": "Slice 群組分帳",
+  "short_name": "Slice",
   "description": "專為群組設計的簡單分帳工具。支援匿名登入、Google 登入，輕鬆追蹤支出、計算結清金額。",
   "start_url": "/",
   "display": "standalone",

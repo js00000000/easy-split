@@ -15,11 +15,11 @@ export function GroupSelectionPage() {
     <>
       <Helmet>
         <html lang={i18n.language} />
-        <title>{t('groups.my_groups')} - EasySplit</title>
+        <title>{t('groups.my_groups')} - Slice</title>
         <meta name="description" content={t('common.seo_description')} />
-        <meta property="og:title" content={`${t('groups.my_groups')} - EasySplit`} />
+        <meta property="og:title" content={`${t('groups.my_groups')} - Slice`} />
         <meta property="og:description" content={t('common.seo_description')} />
-        <meta property="twitter:title" content={`${t('groups.my_groups')} - EasySplit`} />
+        <meta property="twitter:title" content={`${t('groups.my_groups')} - Slice`} />
         <meta property="twitter:description" content={t('common.seo_description')} />
       </Helmet>
       <GroupSelectionView

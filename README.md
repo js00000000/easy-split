@@ -1,4 +1,4 @@
-# Easy Split (群組分帳)
+# Slice (群組分帳)
 
 A modern, mobile-friendly group expense splitting application built with React, TypeScript, and Firebase.
 
