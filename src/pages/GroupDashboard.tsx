@@ -61,13 +61,9 @@ export function GroupDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20 md:pb-8">
       <Helmet>
-        <html lang={i18n.language} />
         <title>{currentGroup?.name ? `${currentGroup.name} - Slice` : `Group Dashboard - Slice`}</title>
-        <meta name="description" content={t('common.seo_description')} />
         <meta property="og:title" content={currentGroup?.name ? `${currentGroup.name} - Slice` : `Group Dashboard - Slice`} />
-        <meta property="og:description" content={t('common.seo_description')} />
         <meta property="twitter:title" content={currentGroup?.name ? `${currentGroup.name} - Slice` : `Group Dashboard - Slice`} />
-        <meta property="twitter:description" content={t('common.seo_description')} />
       </Helmet>
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">

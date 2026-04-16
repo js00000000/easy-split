@@ -1,6 +1,5 @@
 import { LogIn, UserCircle, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Helmet } from 'react-helmet-async';
 
 interface LoginViewProps {
   onGoogleLogin: () => void;
@@ -17,15 +16,6 @@ export function LoginView({ onGoogleLogin, onGuestLogin }: LoginViewProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <Helmet>
-        <html lang={i18n.language} />
-        <title>{t('common.seo_title')}</title>
-        <meta name="description" content={t('common.seo_description')} />
-        <meta property="og:title" content={t('common.seo_title')} />
-        <meta property="og:description" content={t('common.seo_description')} />
-        <meta property="twitter:title" content={t('common.seo_title')} />
-        <meta property="twitter:description" content={t('common.seo_description')} />
-      </Helmet>
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 space-y-8 animate-in fade-in zoom-in duration-300">
         <div className="text-center space-y-3">
           <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg rotate-3">

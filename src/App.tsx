@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
 import { AuthErrorView } from './components/AuthErrorView';
 import { LoadingView } from './components/LoadingView';
 import { LoginView } from './components/LoginView';
@@ -15,6 +17,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useGroup } from './contexts/GroupContext';
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   const { user, authLoading, authError, handleGoogleLogin, handleGuestLogin } = useAuth();
   const { currentMemberId, currentMember, isLoading } = useGroup();
 
@@ -24,22 +27,33 @@ export default function App() {
   if (isLoading) return <LoadingView />;
 
   return (
-    <Routes>
-      <Route path="/" element={<GroupSelectionPage />} />
-      
-      <Route path="/group/:groupId" element={
-        !currentMemberId || !currentMember ? (
-          <MemberSelectionPage />
-        ) : (
-          <GroupDashboard />
-        )
-      } />
+    <>
+      <Helmet>
+        <html lang={i18n.language} />
+        <title>Slice - {t('common.seo_title')}</title>
+        <meta name="description" content={t('common.seo_description')} />
+        <meta property="og:title" content={t('common.seo_title')} />
+        <meta property="og:description" content={t('common.seo_description')} />
+        <meta property="twitter:title" content={t('common.seo_title')} />
+        <meta property="twitter:description" content={t('common.seo_description')} />
+      </Helmet>
+      <Routes>
+        <Route path="/" element={<GroupSelectionPage />} />
+        
+        <Route path="/group/:groupId" element={
+          !currentMemberId || !currentMember ? (
+            <MemberSelectionPage />
+          ) : (
+            <GroupDashboard />
+          )
+        } />
 
-      <Route path="/group/:groupId/members" element={<MemberManagementPage />} />
+        <Route path="/group/:groupId/members" element={<MemberManagementPage />} />
 
-      <Route path="/join/:groupId" element={<JoinGroupPage />} />
+        <Route path="/join/:groupId" element={<JoinGroupPage />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
