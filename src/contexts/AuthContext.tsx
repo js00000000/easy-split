@@ -45,46 +45,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [showAbandonGuestConfirm, setShowAbandonGuestConfirm] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    let unsubscribe: (() => void) | null = null;
-
-    const initAuth = async () => {
+    // Handle redirect result (for cases where popup was blocked)
+    const handleRedirect = async () => {
       try {
-        // Stay in loading state while checking redirect result
-        console.log("Checking redirect result...");
         const result = await getRedirectResult(auth);
         if (result) {
-          console.log("Redirect result found:", result.user.email);
+          // Successfully signed in or linked via redirect
+          // onAuthStateChanged will handle setting the user
         }
       } catch (error: unknown) {
         console.error("Redirect error catch:", error);
         const authErr = error as AuthError;
         if (authErr.code === 'auth/credential-already-in-use') {
+          // If they tried to link a Google account that already exists via redirect, 
+          // we show the confirmation instead of auto-signing in
           setShowAbandonGuestConfirm(true);
         } else {
           toast.error(authErr.message || "An error occurred during redirect.");
         }
-      } finally {
-        if (isMounted) {
-          // Now that we've processed redirect (successfully or with error), 
-          // we can listen for the final auth state
-          unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            console.log("Auth state changed:", currentUser?.email || "null");
-            if (isMounted) {
-              setUser(currentUser);
-              setAuthLoading(false);
-            }
-          });
-        }
       }
     };
 
-    initAuth();
+    handleRedirect();
 
-    return () => {
-      isMounted = false;
-      if (unsubscribe) unsubscribe();
-    };
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleGoogleLogin = async () => {
