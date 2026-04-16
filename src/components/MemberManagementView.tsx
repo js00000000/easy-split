@@ -49,10 +49,7 @@ export function MemberManagementView({
       const balanceStr = balance > 0 
         ? t('members.receivable', { amount: balance.toFixed(0) }) 
         : t('members.owe', { amount: Math.abs(balance).toFixed(0) });
-      toast.error(i18n.language.startsWith('zh') 
-        ? `無法刪除成員「${member.name}」，因為該成員還有未結清的款項 (${balanceStr})。`
-        : `Cannot delete member "${member.name}" because they have unsettled balances (${balanceStr}).`
-      );
+      toast.error(t('members.error_unsettled', { name: member.name, balance: balanceStr }));
       return;
     }
     const isConfirmed = await confirm(t('members.delete_member_msg', { name: member.name }));
@@ -105,7 +102,7 @@ export function MemberManagementView({
               <Users className="w-4 h-4 text-indigo-600" /> {t('members.list')}
             </h2>
             <span className="text-xs text-gray-500">
-              {members.length} {i18n.language.startsWith('zh') ? '位成員' : 'members'}
+              {t('members.count', { count: members.length })}
             </span>
           </div>
 

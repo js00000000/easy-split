@@ -188,7 +188,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
         await setDoc(doc(db, 'users', user.uid), { lastGroupId: gid, joinedGroupIds: arrayUnion(gid) }, { merge: true });
         navigate(`/group/${gid}`);
       } else { 
-        toast.error(i18n.language.startsWith('zh') ? "找不到此群組 ID，請確認後再試。" : "Group ID not found. Please check and try again."); 
+        toast.error(t('common.error_group_not_found')); 
         setIsLoading(false); 
       }
     } catch (error) { 
@@ -256,7 +256,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     if (!user || !groupId || !name.trim()) return;
     const currentMember = members.find(m => m.userId === user.uid);
     if (!currentMember?.isHost) {
-      toast.error(i18n.language.startsWith('zh') ? "只有主持人可以新增成員" : "Only host can add members");
+      toast.error(t('common.error_host_only'));
       return;
     }
     // By host, we don't bind a userId so anyone can claim it later
@@ -271,7 +271,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     if (!user || !groupId) return;
     const currentMember = members.find(m => m.userId === user.uid);
     if (!currentMember?.isHost) {
-      toast.error(i18n.language.startsWith('zh') ? "只有主持人可以刪除成員" : "Only host can delete members");
+      toast.error(t('common.error_host_only'));
       return;
     }
     await deleteDoc(doc(db, 'groups', groupId, 'members', memberId));
@@ -287,7 +287,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     if (!user || !groupId || !newName.trim()) return;
     const currentMember = members.find(m => m.userId === user.uid);
     if (!currentMember?.isHost) {
-      toast.error(i18n.language.startsWith('zh') ? "只有主持人可以更改群組名稱" : "Only host can change group name");
+      toast.error(t('common.error_host_only'));
       return;
     }
     await updateDoc(doc(db, 'groups', groupId), { name: newName.trim(), updatedAt: serverTimestamp() });

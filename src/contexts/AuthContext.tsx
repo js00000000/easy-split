@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // we show the confirmation instead of auto-signing in
         setShowAbandonGuestConfirm(true);
       } else {
-        toast.error(authErr.message || "An error occurred during redirect.");
+        toast.error(t('common.error'));
       }
     });
 
@@ -84,6 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else if (error.code === 'auth/credential-already-in-use') {
             // Google account already exists, show confirmation before switching
             setShowAbandonGuestConfirm(true);
+          } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+            // User closed the popup, just reset loading state
+            console.log("Google login popup closed by user");
           } else {
             throw error;
           }
@@ -95,6 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const error = err as AuthError;
           if (error.code === 'auth/popup-blocked') {
             await signInWithRedirect(auth, googleProvider);
+          } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+            // User closed the popup, just reset loading state
+            console.log("Google login popup closed by user");
           } else {
             throw error;
           }
@@ -103,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Google login error:", error);
-      toast.error(error.message || "Failed to sign in with Google.");
+      toast.error(t('common.error'));
     } finally {
       setGoogleLoading(false);
     }
@@ -116,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Guest login error:", error);
-      toast.error(error.message || "Failed to sign in as guest.");
+      toast.error(t('common.error'));
     } finally {
       setGuestLoading(false);
     }
@@ -195,6 +201,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const popupError = err as AuthError;
         if (popupError.code === 'auth/popup-blocked') {
           await signInWithRedirect(auth, googleProvider);
+        } else if (popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
+          // User closed the popup, just reset loading state
+          console.log("Google login popup closed by user during abandon confirmation");
         } else {
           throw popupError;
         }
@@ -202,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Confirm abandon error:", error);
-      toast.error(error.message || "Failed to switch account.");
+      toast.error(t('common.error'));
     } finally {
       setGoogleLoading(false);
     }

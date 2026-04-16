@@ -11,6 +11,8 @@
     "share": "分享",
     "loading": "載入中...",
     "error": "發生錯誤",
+    "error_group_not_found": "找不到此群組 ID，請確認後再試。",
+    "error_host_only": "只有主持人可以執行此操作",
     "success": "成功",
     "host": "主持人",
     "seo_title": "SLICE - 快速、簡單的群組分帳工具",
@@ -57,6 +59,7 @@
     "not_claimed": "尚未綁定",
     "delete_member": "刪除成員",
     "delete_member_msg": "確定要刪除成員「{{name}}」嗎？此操作不可復原。",
+    "error_unsettled": "無法刪除成員「{{name}}」，因為該成員還有未結清的款項 ({{balance}})。",
     "settled": "已結清",
     "owe": "待支付 ${{amount}}",
     "receivable": "待收回 ${{amount}}",
@@ -64,7 +67,8 @@
     "manage": "成員與群組管理",
     "select_identity": "請選擇你的身分",
     "select_existing": "選擇既有成員",
-    "or_create": "或建立新成員"
+    "or_create": "或建立新成員",
+    "count": "{{count}} 位成員"
   },
   "expenses": {
     "title": "支出明細",

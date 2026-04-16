@@ -10,7 +10,9 @@
     "copy": "Copy",
     "share": "Share",
     "loading": "Loading...",
-    "error": "Error",
+    "error": "Error occurred",
+    "error_group_not_found": "Group ID not found. Please check and try again.",
+    "error_host_only": "Only host can perform this action",
     "success": "Success",
     "host": "Host",
     "seo_title": "SLICE - Quick & Simple Group Expense Sharing",
@@ -57,6 +59,7 @@
     "not_claimed": "Not Claimed",
     "delete_member": "Delete Member",
     "delete_member_msg": "Are you sure you want to delete '{{name}}'? This cannot be undone.",
+    "error_unsettled": "Cannot delete member '{{name}}' because they have unsettled balances ({{balance}}).",
     "settled": "Settled",
     "owe": "Owe ${{amount}}",
     "receivable": "Receivable ${{amount}}",
@@ -64,7 +67,8 @@
     "manage": "Members & Group Management",
     "select_identity": "Select your identity",
     "select_existing": "Select existing member",
-    "or_create": "Or create a new one"
+    "or_create": "Or create a new one",
+    "count": "{{count}} members"
   },
   "expenses": {
     "title": "Expenses List",
