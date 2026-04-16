@@ -3,6 +3,7 @@ import {
   Receipt, Copy, User as LucideUser, LogOut, Plus, Share2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
 import type { Expense } from '../types';
 import { BalancesView } from '../components/BalancesView';
@@ -52,6 +53,9 @@ export function GroupDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20 md:pb-8">
+      <Helmet>
+        <title>{currentGroup?.name ? `${currentGroup.name} - EasySplit` : '群組控制面板 - EasySplit'}</title>
+      </Helmet>
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
