@@ -7,7 +7,7 @@ import { LoginView } from './components/LoginView';
 // Import Pages
 import { GroupSelectionPage } from './pages/GroupSelectionPage';
 import { MemberSelectionPage } from './pages/MemberSelectionPage';
-import { GroupDashboard } from './pages/GroupDashboard';
+import { GroupDashboardPage } from './pages/GroupDashboardPage';
 import { MemberManagementPage } from './pages/MemberManagementPage';
 import { JoinGroupPage } from './pages/JoinGroupPage';
 
@@ -22,8 +22,8 @@ export default function App() {
 
   if (authLoading) return <LoadingView />;
   if (!user) return (
-    <LoginView 
-      onGoogleLogin={handleGoogleLogin} 
+    <LoginView
+      onGoogleLogin={handleGoogleLogin}
       onGuestLogin={handleGuestLogin}
       isGoogleLoading={googleLoading}
       isGuestLoading={guestLoading}
@@ -49,7 +49,7 @@ export default function App() {
           !currentMemberId || !currentMember ? (
             <MemberSelectionPage />
           ) : (
-            <GroupDashboard />
+            <GroupDashboardPage />
           )
         } />
 

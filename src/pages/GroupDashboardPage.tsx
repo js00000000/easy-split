@@ -14,7 +14,7 @@ import { ExpenseModal } from '../components/ExpenseModal';
 import { ProfileModal } from '../components/ProfileModal';
 import { useGroup } from '../contexts/GroupContext';
 
-export function GroupDashboard() {
+export function GroupDashboardPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const {
