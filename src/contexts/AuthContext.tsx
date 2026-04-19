@@ -68,6 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      // If a non-anonymous user signs in, clear soft logout state
+      if (currentUser && !currentUser.isAnonymous) {
+        setIsSoftLoggedOut(false);
+      }
       setAuthLoading(false);
     });
     return () => unsubscribe();
@@ -121,7 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleGuestLogin = async () => {
     try {
       setGuestLoading(true);
-      await signInAnonymously(auth);
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
       setIsSoftLoggedOut(false);
     } catch (err: unknown) {
       const error = err as AuthError;
@@ -227,8 +233,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsSoftLoggedOut(true);
       } else {
         await signOut(auth);
+        setUser(null);
       }
-      setUser(null);
       toast.success(t('auth.logout'));
       navigate('/');
     } catch (err: unknown) {
