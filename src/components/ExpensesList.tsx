@@ -1,7 +1,7 @@
 import { Receipt, Edit2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Timestamp } from 'firebase/firestore';
 import type { Member, Expense } from '../types';
+import { formatDate, formatCurrency } from '../utils/format';
 
 interface ExpensesListProps {
   expenses: Expense[];
@@ -16,18 +16,6 @@ export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy
   const { t, i18n } = useTranslation();
   const getMemberName = (id: string) => members.find(m => m.id === id)?.name || t('common.loading');
   
-  const formatDate = (timestamp?: Timestamp) => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate();
-    return date.toLocaleString(i18n.language, {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
   return (
     <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b bg-gray-50/50 flex items-center justify-between">
@@ -71,14 +59,14 @@ export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-gray-900 truncate">{exp.description}</h3>
                     <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                      {formatDate(exp.createdAt)}
+                      {formatDate(exp.createdAt, i18n.language)}
                     </span>
                   </div>
                   <div className="text-sm text-gray-500 mt-1 space-y-0.5">
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className="font-medium">{getMemberName(exp.paidBy)}</span> 
                       <span>{t('expenses.paid_action')}</span>
-                      <span className="font-medium text-gray-900">${exp.amount}</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(exp.amount)}</span>
                     </div>
                     <p className="text-xs text-gray-400">
                       {t('expenses.split_among')}: {exp.splitAmong.map(getMemberName).join(', ')}

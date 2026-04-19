@@ -99,6 +99,7 @@
     "bank_code": "代碼 (如: 822)",
     "bank_account": "銀行帳號 (如: 1234567890)",
     "bank_msg": "設定後，其他人需要還你錢時，就會看到這個帳號並可一鍵複製。",
+    "bank_copied": "已複製銀行資訊",
     "settings_updated": "個人設定已更新"
   },
   "balances": {

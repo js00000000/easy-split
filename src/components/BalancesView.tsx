@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import type { Member, Expense } from '../types';
 import { calculateBalancesAndSettlements } from '../lib/settlement';
+import { formatCurrency, toAmountDisplay } from '../utils/format';
 
 interface BalancesViewProps {
   members: Member[];
@@ -39,11 +40,11 @@ export function BalancesView({ members, expenses, currentMemberId }: BalancesVie
               <p className="text-2xl font-bold text-green-600">{t('members.settled')}</p>
             ) : myBalance > 0 ? (
               <p className="text-2xl font-bold text-indigo-600">
-                {t('members.receivable', { amount: myBalance.toFixed(0) })}
+                {t('members.receivable', { amount: toAmountDisplay(myBalance) })}
               </p>
             ) : (
               <p className="text-2xl font-bold text-red-500">
-                {t('members.owe', { amount: Math.abs(myBalance).toFixed(0) })}
+                {t('members.owe', { amount: toAmountDisplay(Math.abs(myBalance)) })}
               </p>
             )}
           </div>
@@ -90,7 +91,7 @@ function SettlementRow({ settlement, members, currentMemberId }: {
     const text = toMember?.bankAccount || '';
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text)
-        .then(() => toast.success(t('groups.id_copied')))
+        .then(() => toast.success(t('profile.bank_copied')))
         .catch(() => fallbackCopy(text));
     } else {
       fallbackCopy(text);
@@ -109,7 +110,7 @@ function SettlementRow({ settlement, members, currentMemberId }: {
     textArea.select();
     try {
       document.execCommand('copy');
-      toast.success(t('groups.id_copied'));
+      toast.success(t('profile.bank_copied'));
     } catch (err) {
       console.error('Unable to copy', err);
       toast.error(t('common.error'));
@@ -129,7 +130,7 @@ function SettlementRow({ settlement, members, currentMemberId }: {
             {getMemberName(settlement.to)}
           </span>
         </div>
-        <span className="font-medium font-mono">${settlement.amount.toFixed(0)}</span>
+        <span className="font-medium font-mono">{formatCurrency(settlement.amount)}</span>
       </div>
 
       {isPayer && (toMember?.bankAccount || toMember?.bankCode) && (
