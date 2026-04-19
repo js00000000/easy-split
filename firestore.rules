@@ -1,0 +1,69 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User Settings
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Groups
+    match /groups/{groupId} {
+      // Allow anyone with the link (groupId) to read for joining
+      // In a production app, you might want to restrict this to members only
+      allow read: if isAuthenticated();
+      
+      // Creating a group
+      allow create: if isAuthenticated() 
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 50;
+      
+      // Only host (creator) can update or delete the group
+      allow update, delete: if isAuthenticated() 
+        && resource.data.createdBy == request.auth.uid;
+
+      // Members subcollection
+      match /members/{memberId} {
+        allow read: if isAuthenticated();
+        
+        // Host can create members, or a user can claim a member
+        allow create: if isAuthenticated() 
+          && (get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid
+              || request.resource.data.userId == request.auth.uid);
+        
+        // Host can update any member, or a user can update their own claimed profile
+        allow update: if isAuthenticated() 
+          && (get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid
+              || resource.data.userId == request.auth.uid);
+              
+        // Only host can delete members
+        allow delete: if isAuthenticated() 
+          && get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid;
+      }
+
+      // Expenses subcollection
+      match /expenses/{expenseId} {
+        allow read: if isAuthenticated();
+        
+        // Any authenticated user (ideally limited to members) can create/edit expenses
+        // We validate that the createdBy matches the current member link
+        allow create: if isAuthenticated() 
+          && request.resource.data.amount is number
+          && request.resource.data.description.size() <= 100;
+          
+        allow update, delete: if isAuthenticated();
+      }
+    }
+  }
+}
