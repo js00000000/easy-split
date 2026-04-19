@@ -7,10 +7,10 @@ import { LoadingView } from './LoadingView';
  * Ensures user is authenticated.
  */
 export function AuthGuard() {
-  const { user, authLoading } = useAuth();
+  const { user, authLoading, isSoftLoggedOut } = useAuth();
 
   if (authLoading) return <LoadingView />;
-  if (!user) return <Navigate to="/" replace />;
+  if (!user || isSoftLoggedOut) return <Navigate to="/" replace />;
 
   return <Outlet />;
 }

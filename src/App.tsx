@@ -18,12 +18,15 @@ import { useGroup } from './contexts/GroupContext';
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const { user, authLoading, googleLoading, guestLoading, handleGoogleLogin, handleGuestLogin } = useAuth();
+  const { 
+    user, authLoading, googleLoading, guestLoading, isSoftLoggedOut, 
+    handleGoogleLogin, handleGuestLogin 
+  } = useAuth();
   const { currentMemberId, currentMember, isLoading } = useGroup();
 
   if (authLoading) return <LoadingView />;
   
-  if (!user) return (
+  if (!user || isSoftLoggedOut) return (
     <>
       <Helmet>
         <html lang={i18n.language} />

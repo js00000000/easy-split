@@ -25,7 +25,7 @@
     "google_login": "Login with Google",
     "guest_login": "Login as Guest",
     "logout": "Logout",
-    "logout_msg": "Are you sure you want to logout?",
+    "logout_msg": "Logout will end your current session. (Guest data will be preserved in this browser)",
     "account_exists": "Account Already Exists",
     "abandon_guest_msg": "You are currently logged in as a guest. To link this to your Google account, you must abandon your guest data. Or, switch directly to your Google account.",
     "abandon_confirm": "Abandon Guest Data & Switch",

@@ -34,6 +34,7 @@ interface AuthContextType {
   authLoading: boolean;
   googleLoading: boolean;
   guestLoading: boolean;
+  isSoftLoggedOut: boolean;
   handleGoogleLogin: () => Promise<void>;
   handleGuestLogin: () => Promise<void>;
   handleLogout: () => Promise<void>;
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [showAbandonGuestConfirm, setShowAbandonGuestConfirm] = useState(false);
+  const [isSoftLoggedOut, setIsSoftLoggedOut] = useState(false);
 
   useEffect(() => {
     // Handle redirect result (for cases where popup was blocked)
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
+      setIsSoftLoggedOut(false);
       if (auth.currentUser && auth.currentUser.isAnonymous) {
         try {
           await linkWithPopup(auth.currentUser, googleProvider);
@@ -119,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setGuestLoading(true);
       await signInAnonymously(auth);
+      setIsSoftLoggedOut(false);
     } catch (err: unknown) {
       const error = err as AuthError;
       console.error("Guest login error:", error);
@@ -219,7 +223,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      if (user?.isAnonymous) {
+        setIsSoftLoggedOut(true);
+      } else {
+        await signOut(auth);
+      }
       setUser(null);
       toast.success(t('auth.logout'));
       navigate('/');
@@ -231,7 +239,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, authLoading, googleLoading, guestLoading, handleGoogleLogin, handleGuestLogin, handleLogout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      authLoading, 
+      googleLoading, 
+      guestLoading, 
+      isSoftLoggedOut,
+      handleGoogleLogin, 
+      handleGuestLogin, 
+      handleLogout 
+    }}>
       {children}
       {showAbandonGuestConfirm && (
         <AbandonGuestConfirmationModal
