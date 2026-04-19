@@ -14,7 +14,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HelmetProvider>
       <BrowserRouter>
-        <Toaster position="top-center" reverseOrder={false} />
+        <Toaster 
+          position="top-center" 
+          reverseOrder={false} 
+          containerStyle={{
+            top: 70,
+          }}
+        />
         <DialogProvider>
           <AuthProvider>
             <GroupProvider>
