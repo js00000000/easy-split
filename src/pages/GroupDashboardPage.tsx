@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  Receipt, User as LucideUser, LogOut, Plus, Share2, Languages
+  Receipt, User as LucideUser, LayoutGrid, Plus, Share2, Languages
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -24,7 +24,6 @@ export function GroupDashboardPage() {
     expenses,
     currentMemberId,
     currentMember,
-    handleLeaveGroup,
     handleUpdateProfile,
     handleAddExpense,
     handleUpdateExpense,
@@ -71,10 +70,13 @@ export function GroupDashboardPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex flex-col">
             <div className="flex items-center gap-2 text-indigo-600">
-              <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+              >
                 <Receipt className="w-5 h-5" />
                 <span className="text-xs font-black tracking-tighter uppercase text-indigo-400">{APP_NAME}</span>
-              </div>
+              </button>
               <h1 className="font-bold text-base leading-none border-l border-indigo-100 pl-2 mb-0.5">{currentGroup?.name || 'Group Dashboard'}</h1>
             </div>
           </div>
@@ -105,10 +107,12 @@ export function GroupDashboardPage() {
             >
               <Languages className="w-4 h-4" />
             </button>
-            <button onClick={handleLeaveGroup}
-              className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-              title={t('auth.logout')}>
-              <LogOut className="w-4 h-4" />
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+              title={t('groups.my_groups')}
+            >
+              <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
         </div>
