@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  Receipt, Copy, User as LucideUser, LogOut, Plus, Share2, Languages, Users
+  Receipt, User as LucideUser, LogOut, Plus, Share2, Languages
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -80,28 +80,13 @@ export function GroupDashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(groupId);
-                  toast.success(t('groups.id_copied'));
-                }}
-                className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5"
-              >
-                ID: {groupId.slice(0, 8)}... <Copy className="w-2 h-2" />
-              </button>
-              <button
-                onClick={() => {
                   const url = `${window.location.origin}/join/${groupId}`;
                   navigator.clipboard.writeText(url);
                   toast.success(t('groups.link_copied'));
                 }}
-                className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5 border-l border-gray-200 pl-2"
+                className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5"
               >
                 <Share2 className="w-2 h-2" /> {t('common.share')}
-              </button>
-              <button
-                onClick={() => navigate(`/group/${groupId}/members`)}
-                className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-indigo-500 transition-colors mt-0.5 border-l border-gray-200 pl-2"
-              >
-                <Users className="w-2 h-2" /> {t('members.title')}
               </button>
             </div>
           </div>

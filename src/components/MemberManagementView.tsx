@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Users, Shield, X, Plus, Copy, Trash2, Share2, Languages } from 'lucide-react';
+import { ArrowLeft, Users, Shield, X, Plus, Trash2, Share2, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { APP_NAME } from '../constants';
@@ -208,22 +208,6 @@ export function MemberManagementView({
               ) : (
                 <span className="text-sm font-medium">{currentGroup?.name}</span>
               )}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">{t('groups.group_id')}</span>
-              <div className="flex items-center gap-2">
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{currentGroup?.id}</code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(currentGroup?.id || '');
-                    toast.success(t('groups.id_copied'));
-                  }}
-                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                  title={t('common.copy')}
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-              </div>
             </div>
 
             <div className="flex items-center justify-between pt-2">
