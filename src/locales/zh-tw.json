@@ -15,6 +15,7 @@
     "error_host_only": "只有主持人可以執行此操作",
     "success": "成功",
     "host": "主持人",
+    "switch_lang": "切換語言",
     "seo_title": "SLICE - 快速、簡單的群組分帳工具",
     "seo_description": "SLICE 是一款專為群組設計的簡單分帳工具。支援匿名登入、Google 登入，輕鬆追蹤支出、計算結清金額。適合朋友聚餐、出遊、室友分帳。"
   },
@@ -83,7 +84,13 @@
     "delete_msg": "確定要刪除這筆支出紀錄嗎？",
     "deleted": "支出已刪除",
     "updated": "支出已更新",
-    "added": "支出已新增"
+    "added": "支出已新增",
+    "filter_all": "全部",
+    "no_matching": "查無符合的支出",
+    "no_matching_hint": "試著切換篩選對象或清除篩選",
+    "no_expenses_recorded": "尚無支出紀錄",
+    "no_expenses_hint": "點擊右下角按鈕新增第一筆群組支出",
+    "paid_action": "先付了"
   },
   "profile": {
     "title": "個人設定",

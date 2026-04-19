@@ -111,7 +111,7 @@ export function GroupDashboardPage() {
             <button
               onClick={toggleLanguage}
               className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
-              title={i18n.language.startsWith('zh') ? 'Switch to English' : '切換至繁體中文'}
+              title={t('common.switch_lang')}
             >
               <Languages className="w-4 h-4" />
             </button>
@@ -159,10 +159,10 @@ export function GroupDashboardPage() {
           onSave={async (data, id) => {
             if (id) {
               await handleUpdateExpense(id, data);
-              toast.success('支出已更新');
+              toast.success(t('expenses.updated'));
             } else {
               await handleAddExpense(data);
-              toast.success('支出已新增');
+              toast.success(t('expenses.added'));
             }
             setIsExpenseModalOpen(false);
             setExpenseToEdit(null);

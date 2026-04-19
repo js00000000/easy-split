@@ -15,6 +15,7 @@
     "error_host_only": "Only host can perform this action",
     "success": "Success",
     "host": "Host",
+    "switch_lang": "Switch Language",
     "seo_title": "SLICE - Quick & Simple Group Expense Sharing",
     "seo_description": "SLICE is a simple expense sharing tool designed for groups. Support anonymous and Google login, easily track expenses and calculate settlements. Perfect for dining, trips, and roommates."
   },
@@ -83,7 +84,13 @@
     "delete_msg": "Are you sure you want to delete this expense?",
     "deleted": "Expense deleted",
     "updated": "Expense updated",
-    "added": "Expense added"
+    "added": "Expense added",
+    "filter_all": "All",
+    "no_matching": "No matching expenses",
+    "no_matching_hint": "Try clearing the filter",
+    "no_expenses_recorded": "No expenses recorded",
+    "no_expenses_hint": "Click the button below to add your first expense",
+    "paid_action": "paid"
   },
   "profile": {
     "title": "Profile Settings",

@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [t]);
 
   const handleGoogleLogin = async () => {
     try {

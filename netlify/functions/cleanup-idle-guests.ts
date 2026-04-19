@@ -24,7 +24,7 @@ const initAdmin = () => {
  * 2. Uses auth().deleteUsers() for batch auth deletion.
  * 3. Includes a secret key check for manual API triggers.
  */
-export default async (req: Request, context: Context) => {
+export default async (req: Request) => {
   console.log('Starting idle guest cleanup...');
   
   // Security Check for manual trigger (optional but recommended)

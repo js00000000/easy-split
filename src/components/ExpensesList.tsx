@@ -42,7 +42,7 @@ export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy
             onChange={(e) => onFilterChange(e.target.value || null)}
             className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-indigo-600 outline-none"
           >
-            <option value="">{i18n.language.startsWith('zh') ? '全部' : 'All'}</option>
+            <option value="">{t('expenses.filter_all')}</option>
             {members.map(member => (
               <option key={member.id} value={member.id}>
                 {member.name}
@@ -56,10 +56,10 @@ export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy
         <div className="p-10 text-center">
           <Receipt className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <h3 className="text-gray-900 font-medium mb-1">
-            {filterPaidBy ? (i18n.language.startsWith('zh') ? '查無符合的支出' : 'No matching expenses') : (i18n.language.startsWith('zh') ? '尚無支出紀錄' : 'No expenses recorded')}
+            {filterPaidBy ? t('expenses.no_matching') : t('expenses.no_expenses_recorded')}
           </h3>
           <p className="text-gray-500 text-sm">
-            {filterPaidBy ? (i18n.language.startsWith('zh') ? '試著切換篩選對象或清除篩選' : 'Try clearing the filter') : (i18n.language.startsWith('zh') ? '點擊右下角按鈕新增第一筆群組支出' : 'Click the button below to add your first expense')}
+            {filterPaidBy ? t('expenses.no_matching_hint') : t('expenses.no_expenses_hint')}
           </p>
         </div>
       ) : (
@@ -77,7 +77,7 @@ export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy
                   <div className="text-sm text-gray-500 mt-1 space-y-0.5">
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className="font-medium">{getMemberName(exp.paidBy)}</span> 
-                      <span>{i18n.language.startsWith('zh') ? '先付了' : 'paid'}</span>
+                      <span>{t('expenses.paid_action')}</span>
                       <span className="font-medium text-gray-900">${exp.amount}</span>
                     </div>
                     <p className="text-xs text-gray-400">
