@@ -25,7 +25,7 @@
     "google_login": "Google 帳號登入",
     "guest_login": "訪客登入",
     "logout": "登出",
-    "logout_msg": "登出將結束本次會話（訪客資料將保留在此瀏覽器中）。",
+    "logout_msg": "確定要登出嗎？",
     "account_exists": "帳號已存在",
     "abandon_guest_msg": "你目前正使用訪客帳號。若要連結 Google 帳號，你必須捨棄目前的訪客資料。或者，你也可以直接切換到 Google 帳號。",
     "abandon_confirm": "捨棄訪客資料並切換",
