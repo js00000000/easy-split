@@ -131,6 +131,7 @@ export function OnboardingView({
                 className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
                 focus:border-transparent outline-none text-sm"
                 required
+                maxLength={30}
               />
               <button type="submit" disabled={!newName.trim()}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-700 transition-colors text-sm">

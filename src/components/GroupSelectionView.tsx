@@ -118,6 +118,7 @@ export function GroupSelectionView({
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder={t('groups.enter_name')}
                   className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm"
+                  maxLength={50}
                 />
                 <button
                   onClick={() => onCreateGroup(groupName)}

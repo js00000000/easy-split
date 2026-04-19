@@ -74,6 +74,7 @@ export function ProfileModal({
                   className="w-full pl-9 pr-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
                   focus:border-transparent outline-none text-sm"
                   required
+                  maxLength={30}
                 />
               </div>
             </div>
