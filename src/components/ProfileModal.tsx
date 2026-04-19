@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User as LucideUser, CreditCard, Users, Shield } from 'lucide-react';
+import { X, User as LucideUser, CreditCard, Users, Shield, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Member } from '../types';
 
@@ -8,13 +8,15 @@ interface ProfileModalProps {
   onClose: () => void;
   onSave: (data: Partial<Member>) => void;
   onManageMembers: () => void;
+  onLogout: () => void;
 }
 
 export function ProfileModal({
   currentMember,
   onClose,
   onSave,
-  onManageMembers
+  onManageMembers,
+  onLogout
 }: ProfileModalProps) {
   const { t } = useTranslation();
   const [name, setName] = useState(currentMember.name || '');
@@ -106,6 +108,14 @@ export function ProfileModal({
             >
               <Users className="w-4 h-4" />
               {currentMember.isHost ? t('members.manage') : t('members.view_all')}
+            </button>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              {t('auth.logout')}
             </button>
           </div>
         </form>

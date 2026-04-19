@@ -13,10 +13,12 @@ import { ExpensesList } from '../components/ExpensesList';
 import { ExpenseModal } from '../components/ExpenseModal';
 import { ProfileModal } from '../components/ProfileModal';
 import { useGroup } from '../contexts/GroupContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export function GroupDashboardPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { handleLogout } = useAuth();
   const {
     groupId,
     currentGroup,
@@ -176,6 +178,7 @@ export function GroupDashboardPage() {
             setIsProfileModalOpen(false);
             navigate(`/group/${groupId}/members`);
           }}
+          onLogout={handleLogout}
         />
       )}
     </div>
