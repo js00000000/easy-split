@@ -80,7 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
+
+      // If they were a guest and soft-logged out, we sign out completely
+      // so this Google login is treated as a fresh start, not a link attempt.
+      if (isSoftLoggedOut && auth.currentUser?.isAnonymous) {
+        await signOut(auth);
+      }
+
       setIsSoftLoggedOut(false);
+      
       if (auth.currentUser && auth.currentUser.isAnonymous) {
         try {
           await linkWithPopup(auth.currentUser, googleProvider);
