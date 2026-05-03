@@ -43,9 +43,11 @@ service cloud.firestore {
               || request.resource.data.userId == request.auth.uid);
         
         // Host can update any member, or a user can update their own claimed profile
+        // Also allow a user to claim an unclaimed member (userId is null)
         allow update: if isAuthenticated() 
           && (get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid
-              || resource.data.userId == request.auth.uid);
+              || resource.data.userId == request.auth.uid
+              || (resource.data.userId == null && request.resource.data.userId == request.auth.uid));
               
         // Only host can delete members
         allow delete: if isAuthenticated() 

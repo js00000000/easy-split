@@ -52,16 +52,27 @@ export const firebaseService = {
 
   async joinGroup(userId: string, groupId: string) {
     const groupRef = doc(db, 'groups', groupId);
-    const groupSnap = await getDoc(groupRef);
+    let groupSnap;
+    try {
+      groupSnap = await getDoc(groupRef);
+    } catch (err) {
+      console.error("Firestore Error: Failed to read group for joining", err);
+      throw err;
+    }
 
     if (!groupSnap.exists()) {
       throw new Error('group_not_found');
     }
 
-    await setDoc(doc(db, 'users', userId), {
-      lastGroupId: groupId,
-      joinedGroupIds: arrayUnion(groupId),
-    }, { merge: true });
+    try {
+      await setDoc(doc(db, 'users', userId), {
+        lastGroupId: groupId,
+        joinedGroupIds: arrayUnion(groupId),
+      }, { merge: true });
+    } catch (err) {
+      console.error("Firestore Error: Failed to update user settings for joining", err);
+      throw err;
+    }
   },
 
   async leaveGroup(userId: string, groupId: string, memberId: string) {
