@@ -2,6 +2,7 @@ import { Receipt, Edit2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Member, Expense } from '../types';
 import { formatDate, formatCurrency } from '../utils/format';
+import { useGroup } from '../contexts/GroupContext';
 
 interface ExpensesListProps {
   expenses: Expense[];
@@ -14,6 +15,7 @@ interface ExpensesListProps {
 
 export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy, onFilterChange }: ExpensesListProps) {
   const { t, i18n } = useTranslation();
+  const { currentMemberId } = useGroup();
   const getMemberName = (id: string) => members.find(m => m.id === id)?.name || t('common.loading');
   
   return (
@@ -64,13 +66,23 @@ export function ExpensesList({ expenses, members, onEdit, onDelete, filterPaidBy
                   </div>
                   <div className="text-sm text-gray-500 mt-1 space-y-0.5">
                     <div className="flex items-center gap-1 flex-wrap">
-                      <span className="font-medium">{getMemberName(exp.paidBy)}</span> 
+                      <span className={`font-medium ${exp.paidBy === currentMemberId ? 'text-indigo-600 font-semibold' : ''}`}>
+                        {getMemberName(exp.paidBy)}
+                      </span> 
                       <span>{t('expenses.paid_action')}</span>
                       <span className="font-medium text-gray-900">{formatCurrency(exp.amount)}</span>
                     </div>
-                    <p className="text-xs text-gray-400">
-                      {t('expenses.split_among')}: {exp.splitAmong.map(getMemberName).join(', ')}
-                    </p>
+                    <div className="text-xs text-gray-400 flex flex-wrap gap-x-1">
+                      <span>{t('expenses.split_among')}:</span>
+                      {exp.splitAmong.map((memberId, idx) => (
+                        <span key={memberId}>
+                          <span className={memberId === currentMemberId ? 'text-indigo-600 font-semibold' : ''}>
+                            {getMemberName(memberId)}
+                          </span>
+                          {idx < exp.splitAmong.length - 1 && ','}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
