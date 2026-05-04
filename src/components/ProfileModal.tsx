@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User as LucideUser, CreditCard, Users, Shield, LogOut } from 'lucide-react';
+import { X, User as LucideUser, Users, Shield, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Member } from '../types';
 import { useDialog } from '../contexts/DialogContext';
@@ -24,15 +24,11 @@ export function ProfileModal({
   const { t } = useTranslation();
   const { confirm } = useDialog();
   const [name, setName] = useState(currentMember.name || '');
-  const [bankCode, setBankCode] = useState(currentMember.bankCode || '');
-  const [bankAccount, setBankAccount] = useState(currentMember.bankAccount || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      name: name.trim(),
-      bankCode: bankCode.trim(),
-      bankAccount: bankAccount.trim()
+      name: name.trim()
     });
   };
 
@@ -90,35 +86,6 @@ export function ProfileModal({
                   maxLength={30}
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.bank_info')}</label>
-              <div className="flex gap-2">
-                <input
-                  type="tel"
-                  value={bankCode}
-                  onChange={(e) => setBankCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder={t('profile.bank_code')}
-                  className="w-1/3 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
-                  focus:border-transparent outline-none font-mono text-sm"
-                />
-                <div className="relative flex-1">
-                  <CreditCard
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="tel"
-                    value={bankAccount}
-                    onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
-                    placeholder={t('profile.bank_account')}
-                    className="w-full pl-9 pr-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-600
-                    focus:border-transparent outline-none font-mono text-sm"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                {t('profile.bank_msg')}
-              </p>
             </div>
 
             <button type="submit"

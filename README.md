@@ -16,9 +16,6 @@ A modern, mobile-friendly group expense splitting application built with React, 
 - 📊 **Optimized Settlement**: 
   - Uses a **Greedy Algorithm** to minimize the total number of reimbursement transactions.
   - Real-time balance calculations for all members.
-- 💰 **One-Click Reimbursement**: 
-  - Members can provide **Bank Code and Account** details in their profile.
-  - Debtors can copy the receiver's bank account with one click directly from the settlement view.
 - 🛡️ **Group Management**: 
   - Hosts can manage members, update group names, or permanently delete groups.
   - Regular members can **Leave Group** once their balance is fully settled.

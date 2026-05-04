@@ -105,11 +105,6 @@
   "profile": {
     "title": "Profile Settings",
     "display_name": "Display Name",
-    "bank_info": "Bank Info",
-    "bank_code": "Bank Code (e.g., 822)",
-    "bank_account": "Account Number",
-    "bank_msg": "Others will see this when they need to pay you back.",
-    "bank_copied": "Bank info copied",
     "settings_updated": "Profile settings updated"
   },
   "balances": {

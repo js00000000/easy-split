@@ -6,8 +6,6 @@ export interface Member {
   userId?: string; // Binds to a Firebase User UID
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
-  bankCode?: string;
-  bankAccount?: string;
   isHost?: boolean;
 }
 
